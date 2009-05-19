@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Service
+X-Kopete-Version=1000900
+Icon=facebook_protocol
+X-KDE-ServiceTypes=Kopete/Protocol
+X-KDE-Library=kopete_facebook
+X-Kopete-Messaging-Protocol=messaging/facebook
+X-KDE-PluginInfo-Author=Duncan Mac-Vicar P.
+X-KDE-PluginInfo-Email=duncan@kde.org
+X-KDE-PluginInfo-Name=kopete_facebook
+X-KDE-PluginInfo-Version=0.1
+X-KDE-PluginInfo-Website=http://kopete.kde.org
+X-KDE-PluginInfo-Category=Protocols
+X-KDE-PluginInfo-Depends=
+X-KDE-PluginInfo-License=GPL
+X-KDE-PluginInfo-EnabledByDefault=true
+Name=Facebook
+Comment=Facebook, the social network

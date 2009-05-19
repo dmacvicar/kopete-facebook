@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons
+END
+ox32-app-testbed_protocol.png
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons/ox32-app-testbed_protocol.png
+END
+ox16-app-testbed_protocol.png
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons/ox16-app-testbed_protocol.png
+END
+ox64-app-testbed_protocol.png
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons/ox64-app-testbed_protocol.png
+END
+ox128-app-testbed_protocol.png
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons/ox128-app-testbed_protocol.png
+END
+ox48-app-testbed_protocol.png
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons/ox48-app-testbed_protocol.png
+END
+CMakeLists.txt
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/home/kde/!svn/ver/706316/trunk/KDE/kdenetwork/kopete/protocols/testbed/icons/CMakeLists.txt
+END
