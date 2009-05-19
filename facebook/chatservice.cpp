@@ -748,6 +748,7 @@ void ChatService::startRetrievePictureRequest( const QString &buddyid )
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::User, buddyid);
     
+    qDebug() << "requesting photo for " << buddyid << " at " << url;
     QNetworkReply *reply = _network->get(request);
     reply->setParent(this);
     
@@ -762,12 +763,22 @@ void ChatService::slotRetrievePictureRequestFinished()
     if ( !reply )
         return;
 
-    QString buddyid = reply->attribute(QNetworkRequest::User).toString();
+    QString buddyid = reply->request().attribute(QNetworkRequest::User).toString();
 
     if ( buddyid.isEmpty() )
+    {
+        qDebug() << "photo for unknown buddy";
         return;
+    }
+    
+    QImage image(QImage::fromData(reply->readAll()));
+    if ( image.format() == QImage::Format_Invalid )
+    {
+        qDebug() << "photo for " << buddyid << " is invalid";
+        return;
+    }
 
-    emit buddyThumbAvailable(buddyid, QImage::fromData(reply->readAll()));
+    emit buddyThumbAvailable(buddyid, image);
 }
 
 void ChatService::slotRetrievePictureRequestError(QNetworkReply::NetworkError code)

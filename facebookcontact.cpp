@@ -155,6 +155,8 @@ void FacebookContact::setDisplayPicture( const QImage &image )
     entry.contact = this;
     entry.image = image;
     entry = Kopete::AvatarManager::self()->add(entry);
+    removeProperty (Kopete::Global::Properties::self()->photo ());
+    setProperty (Kopete::Global::Properties::self()->photo (), image);
     //emit displayPictureChanged();
 }
 
