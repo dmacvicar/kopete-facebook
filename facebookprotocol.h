@@ -20,6 +20,8 @@
 
 #include <kopeteprotocol.h>
 
+#define FBDBG 0
+
 /**
  * @author Duncan Mac-Vicar P. <duncan@kde.org>
  */

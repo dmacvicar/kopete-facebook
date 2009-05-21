@@ -154,7 +154,7 @@ void FacebookAccount::slotLoginToServiceFinished()
     
 void FacebookAccount::slotLoginToServiceError()
 {
-    kDebug (14210) << k_funcinfo;
+    kDebug (FBDBG) << k_funcinfo;
     myself ()->setOnlineStatus (FacebookProtocol::protocol ()->facebookOffline);
     Kopete::Utils::notifyCannotConnect(this);
 }
@@ -171,7 +171,7 @@ void  FacebookAccount::slotLogoutFromServiceError()
 
 void FacebookAccount::disconnect()
 {
-	kDebug ( 14210 ) ;
+	kDebug ( FBDBG ) ;
         m_service->setVisibility(false);
 	myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
 	QObject::disconnect ( m_service, 0, 0, 0 );
@@ -184,7 +184,7 @@ Facebook::ChatService * FacebookAccount::service()
 
 void FacebookAccount::slotGoOnline ()
 {
-	kDebug ( 14210 ) ;
+	kDebug ( FBDBG ) ;
 
 	if (!isConnected ())
         {
@@ -199,7 +199,7 @@ void FacebookAccount::slotGoOnline ()
 
 void FacebookAccount::slotGoAway ()
 {
-	kDebug ( 14210 ) ;
+	kDebug ( FBDBG ) ;
 
 	if (!isConnected ())
 		connect();
@@ -210,7 +210,7 @@ void FacebookAccount::slotGoAway ()
 
 void FacebookAccount::slotGoOffline ()
 {
-	kDebug ( 14210 ) ;
+	kDebug ( FBDBG ) ;
 
 	if (isConnected ())
 		disconnect ();
@@ -226,12 +226,12 @@ void FacebookAccount::receivedMessage( const QString &message )
 	Kopete::Contact* contact = contacts().value(from);
 	messageSender = dynamic_cast<FacebookContact *>( contact );
 
-	kDebug( 14210 ) << " got a message from " << from << ", " << messageSender << ", is: " << message;
+	kDebug( FBDBG ) << " got a message from " << from << ", " << messageSender << ", is: " << message;
 	// Pass it on to the contact to process and display via a KMM
 	if ( messageSender )
 		messageSender->receivedMessage( message );
 	else
-		kWarning(14210) << "unable to look up contact for delivery";
+		kWarning(FBDBG) << "unable to look up contact for delivery";
 }
 
 void  FacebookAccount::slotMessageAvailable( const Facebook::ChatMessage &message )
@@ -253,7 +253,7 @@ void  FacebookAccount::slotMessageAvailable( const Facebook::ChatMessage &messag
         if( !contact( message.from() ) )
         {
             // this would be rare... receiving a message from unknown buddy
-            kDebug(14210) << "Adding contact " << message.from();
+            kDebug(FBDBG) << "Adding contact " << message.from();
             addContact( message.from(), message.from(),  0L, Kopete::Account::Temporary );
         }
         if (message.time().toTime_t() == 0)
@@ -282,7 +282,7 @@ void  FacebookAccount::slotBuddyAvailable( const Facebook::BuddyInfo &buddy, boo
     // server -> local
     if ( !contact( buddy.buddyId() ) )
     {
-	kDebug(14210) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
+	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
         return;
     }
     contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
@@ -293,7 +293,7 @@ void  FacebookAccount::slotBuddyNotAvailable( const Facebook::BuddyInfo &buddy )
     // server -> local
     if ( !contact( buddy.buddyId() ) )
     {
-	kDebug(14210) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
+	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
         return;
     }
     contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
@@ -304,7 +304,7 @@ void  FacebookAccount::slotBuddyInformation( const Facebook::BuddyInfo &buddy )
     // server -> local
     if ( !contact( buddy.buddyId() ) )
     {
-	kDebug(14210) << "Contact " << buddy.buddyId() << " is not in the contact list. Adding...";
+	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Adding...";
 	Kopete::Group *g = Kopete::ContactList::self()->findGroup("Facebook");
 	addContact(buddy.buddyId(), buddy.name().isEmpty() ? buddy.buddyId() : buddy.name() , g, Kopete::Account::ChangeKABC);
         contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );

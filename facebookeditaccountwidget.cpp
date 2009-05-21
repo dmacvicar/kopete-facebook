@@ -17,7 +17,7 @@ FacebookEditAccountWidget::FacebookEditAccountWidget( QWidget* parent, Kopete::A
   : QWidget( parent ), KopeteEditAccountWidget( account )
 {
     QVBoxLayout *layout = new QVBoxLayout( this );
-    kDebug(14210) ;
+    kDebug(FBDBG) ;
     QWidget *widget = new QWidget( this );
     m_preferencesWidget = new Ui::FacebookAccountPreferences();
     m_preferencesWidget->setupUi( widget );

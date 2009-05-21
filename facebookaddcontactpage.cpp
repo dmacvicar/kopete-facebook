@@ -28,12 +28,13 @@
 #include "kopetecontactlist.h"
 #include "kopetemetacontact.h"
 
+#include "facebookprotocol.h"
 #include "facebookcontact.h"
 
 FacebookAddContactPage::FacebookAddContactPage( QWidget* parent )
     : AddContactPage(parent)
 {
-    kDebug(14210) ;
+    kDebug(FBDBG) ;
     QVBoxLayout* l = new QVBoxLayout( this );
     QWidget* w = new QWidget();
     m_facebookAddUI.setupUi( w );

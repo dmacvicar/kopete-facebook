@@ -35,7 +35,7 @@ FacebookContact::FacebookContact( Kopete::Account* _account, const QString &uniq
 				  const QString &displayName, Kopete::MetaContact *parent )
     : Kopete::Contact( _account, uniqueName, parent )
 {
-    kDebug( 14210 ) << " uniqueName: " << uniqueName << ", displayName: " << displayName;
+    kDebug( FBDBG ) << " uniqueName: " << uniqueName << ", displayName: " << displayName;
     m_type = FacebookContact::Null;
     // FIXME: ? setDisplayName( displayName );
     m_msgManager = 0L;
@@ -75,7 +75,7 @@ void FacebookContact::serialize( QMap< QString, QString > &serializedData, QMap<
 
 Kopete::ChatSession* FacebookContact::manager( CanCreateFlags canCreateFlags )
 {
-    kDebug( 14210 ) ;
+    kDebug( FBDBG ) ;
     if ( m_msgManager )
     {
 	return m_msgManager;
@@ -117,7 +117,7 @@ void FacebookContact::showContactSettings()
 
 void FacebookContact::sendMessage( Kopete::Message &message )
 {
-    kDebug( 14210 ) ;
+    kDebug( FBDBG ) ;
     // convert to the what the server wants
     // For this 'protocol', there's nothing to do
     // send it

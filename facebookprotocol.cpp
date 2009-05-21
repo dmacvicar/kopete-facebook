@@ -33,13 +33,12 @@ FacebookProtocol *FacebookProtocol::s_protocol = 0L;
 
 FacebookProtocol::FacebookProtocol( QObject* parent, const QVariantList &/*args*/ )
     : Kopete::Protocol( FacebookProtocolFactory::componentData(), parent )
-    , facebookOnline(  Kopete::OnlineStatus::Online, 25, this, 0,  QStringList(), i18n( "Online" ), i18n( "O&nline" ), Kopete::OnlineStatusManager::Online )
-    , facebookAway(  Kopete::OnlineStatus::Away, 25, this, 1, QStringList(QLatin1String("msn_away")), i18n( "Away" ), i18n( "&Away" ), Kopete::OnlineStatusManager::Away )
-    , facebookOffline(  Kopete::OnlineStatus::Offline, 25, this, 2,  QStringList(QString()), i18n( "Offline" ),   i18n( "O&ffline" ), Kopete::OnlineStatusManager::Offline )
-    , facebookConnecting(  Kopete::OnlineStatus::Connecting, 25, this, 2,  QStringList("facebook_connecting"), i18n( "Connecting" ), i18n( "C&onnecting" ), 0, Kopete::OnlineStatusManager::HideFromMenu )
-      
+    , facebookOnline(  Kopete::OnlineStatus::Online, 100, this, 0,  QStringList(), i18n( "Online" ), i18n( "O&nline" ), Kopete::OnlineStatusManager::Online, 0 )
+    , facebookAway(  Kopete::OnlineStatus::Away, 50, this, 1, QStringList(QLatin1String("facebook_away")), i18n( "Away" ), i18n( "&Away" ), Kopete::OnlineStatusManager::Idle, 0 )
+    , facebookOffline(  Kopete::OnlineStatus::Offline, 25, this, 2,  QStringList(), i18n( "Offline" ),   i18n( "O&ffline" ), Kopete::OnlineStatusManager::Offline, 0 )
+    , facebookConnecting(  Kopete::OnlineStatus::Connecting, 10, this, 3, QStringList(QLatin1String("facebook_connecting")), i18n( "Connecting" ) )      
 {
-    kDebug( 14210 ) ;
+    kDebug( FBDBG ) ;
     
     s_protocol = this;
 }
@@ -77,7 +76,7 @@ Kopete::Contact *FacebookProtocol::deserializeContact(
     
     if ( !account )
     {
-        kDebug(14210) << "Account doesn't exist, skipping";
+        kDebug(FBDBG) << "Account doesn't exist, skipping";
         return 0;
     }
     
@@ -88,13 +87,13 @@ Kopete::Contact *FacebookProtocol::deserializeContact(
 
 AddContactPage * FacebookProtocol::createAddContactWidget( QWidget *parent, Kopete::Account * /* account */ )
 {
-    kDebug( 14210 ) << "Creating Add Contact Page";
+    kDebug( FBDBG ) << "Creating Add Contact Page";
     return new FacebookAddContactPage( parent );
 }
 
 KopeteEditAccountWidget * FacebookProtocol::createEditAccountWidget( Kopete::Account *account, QWidget *parent )
 {
-    kDebug(14210) << "Creating Edit Account Page";
+    kDebug(FBDBG) << "Creating Edit Account Page";
     return new FacebookEditAccountWidget( parent, account );
 }
 
