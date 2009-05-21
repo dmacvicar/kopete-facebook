@@ -157,6 +157,17 @@ protected slots:
      * Change the account's status.  Called by KActions and internally.
      */
     void slotGoOffline();
+
+    /**
+     * someone is typing
+     */
+    void slotTypingEventAvailable( const QString &from, const QString &to );
+
+    /**
+     * something bad happened
+     */
+    void slotError( const QString &error );
+
 };
 
 #endif

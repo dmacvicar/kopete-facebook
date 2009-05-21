@@ -87,7 +87,7 @@ public:
   void setStatusMessage(const QString &status);
 
   /**
-   * set the status message
+   * sends a message
    */
   void sendMessage(const QString &userid, const QString &message);
 
@@ -285,7 +285,15 @@ signals:
    */
   void buddyThumbAvailable( const QString &buddyid, const QImage &image );
 
-  //void typingAvailable( cons
+  /**
+   * emmited when one user sends a typing event to the other
+   */
+  void typingEventAvailable( const QString &from, const QString &to );
+
+  /**
+   * emitted when something bad happens
+   */
+  void error( const QString &description );
 
 private:
   QNetworkAccessManager *_network;

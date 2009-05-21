@@ -33,24 +33,37 @@ bool ChatMessage::readVariant( const QVariant &variant )
         return false;    
      
     QVariantMap message = variant.toMap();
-    QVariantMap data = message["msg"].toMap();
+
+    QString type = message["type"].toString();
     
-    // may be we should also check that type is msg
-    _id = data["msgID"].toString();
+    QVariantMap data = message["msg"].toMap();
 
-    if (_id.isEmpty())
+    // we only know these two types
+    if ( ! ( type == "msg" || type == "typ" ) )
         return false;
-
-    setText(data["text"].toString());
+    
+    // those are common to typing and full messages
     setFrom(message["from"].toString());
     setTo(message["to"].toString());
-    setFromName(message["from_name"].toString());
-    setToName(message["to_name"].toString());
-    setFromFirstName(message["from_first_name"].toString());
-    setToFirstName(message["to_first_name"].toString());
-    setToFirstName(message["to_first_name"].toString());
-    setTime(QDateTime::fromTime_t(data["time"].toInt()));
-    setClientTime(QDateTime::fromTime_t(data["client_time"].toInt()));
+
+    if ( type == "msg" )
+    {            
+        _id = data["msgID"].toString();
+
+        // id should not be empty if it is a message
+        if (_id.isEmpty())
+            return false;
+
+        setText(data["text"].toString());
+        setFromName(message["from_name"].toString());
+        setToName(message["to_name"].toString());
+        setFromFirstName(message["from_first_name"].toString());
+        setToFirstName(message["to_first_name"].toString());
+        setToFirstName(message["to_first_name"].toString());
+        setTime(QDateTime::fromTime_t(data["time"].toInt()));
+        setClientTime(QDateTime::fromTime_t(data["client_time"].toInt()));
+    }
+    
     return true;
 }
 

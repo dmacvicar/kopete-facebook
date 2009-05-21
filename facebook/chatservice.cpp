@@ -617,8 +617,17 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                     if ( ms.toMap()["type"].toString() == "typ" )
                     {
                         // typing event
-                        
-                        qDebug() << "TODO typing event";                       
+                        ChatMessage message;
+                        if ( message.readVariant(ms.toMap()) )
+                        {
+                            qDebug() << "typing from: " << message.from() << " to " << message.to();                            
+                            emit typingEventAvailable(message.from(), message.to());
+                        }
+                        else
+                        {
+                            qDebug() << "Error decoding message";
+                            continue;
+                        }
                     }
                     else if ( ms.toMap()["type"].toString() == "msg" )
                     {

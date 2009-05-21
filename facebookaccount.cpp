@@ -90,22 +90,24 @@ void FacebookAccount::setAway( bool away, const QString & /* reason */ )
 
 void FacebookAccount::setOnlineStatus(const Kopete::OnlineStatus& status, const Kopete::StatusMessage &reason, const OnlineStatusOptions& options)
 {
-	if ( status.status() == Kopete::OnlineStatus::Online &&
-			myself()->onlineStatus().status() == Kopete::OnlineStatus::Offline )
-		slotGoOnline();
-	else if (status.status() == Kopete::OnlineStatus::Online &&
-			myself()->onlineStatus().status() == Kopete::OnlineStatus::Away )
-		setAway( false, reason.message() );
-	else if ( status.status() == Kopete::OnlineStatus::Offline )
-		slotGoOffline();
-	else if ( status.status() == Kopete::OnlineStatus::Away )
-		slotGoAway( /* reason */ );
+    Q_UNUSED(options);
+    
+    if ( status.status() == Kopete::OnlineStatus::Online &&
+         myself()->onlineStatus().status() == Kopete::OnlineStatus::Offline )
+        slotGoOnline();
+    else if (status.status() == Kopete::OnlineStatus::Online &&
+             myself()->onlineStatus().status() == Kopete::OnlineStatus::Away )
+        setAway( false, reason.message() );
+    else if ( status.status() == Kopete::OnlineStatus::Offline )
+        slotGoOffline();
+    else if ( status.status() == Kopete::OnlineStatus::Away )
+        slotGoAway( /* reason */ );    
 }
 
 void FacebookAccount::setStatusMessage(const Kopete::StatusMessage& statusMessage)
 {
-	Q_UNUSED(statusMessage);
-	/* Not used in facebook */
+        if ( ! statusMessage.isEmpty() )
+            m_service->setStatusMessage(statusMessage.title());    
 }
 
 void FacebookAccount::connectWithPassword (const QString & pass)
@@ -150,6 +152,8 @@ void FacebookAccount::slotLoginToServiceFinished()
     QObject::connect(m_service, SIGNAL(buddyInformation(const BuddyInfo &)), this, SLOT(slotBuddyInformation(const BuddyInfo &)));
     QObject::connect(m_service, SIGNAL(messageAvailable(const ChatMessage &)), this, SLOT(slotMessageAvailable(const ChatMessage &)));
     QObject::connect(m_service, SIGNAL(buddyThumbAvailable( const QString &, const QImage & )), this, SLOT(slotBuddyThumbAvailable( const QString &, const QImage & )));
+    QObject::connect(m_service, SIGNAL(typingEventAvailable(const QString &, const QString &)), this, SLOT(slotTypingEventAvailable(const QString &, const QString &)));
+    QObject::connect(m_service, SIGNAL(error(const QString &)), this, SLOT(slotError(const QString &)));
 }
     
 void FacebookAccount::slotLoginToServiceError()
@@ -161,7 +165,8 @@ void FacebookAccount::slotLoginToServiceError()
 
 void  FacebookAccount::slotLogoutFromServiceFinished()
 {
-    myself ()->setOnlineStatus (FacebookProtocol::protocol ()->facebookOffline);
+    myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
+    QObject::disconnect ( m_service, 0, 0, 0 );
 }
 
 void  FacebookAccount::slotLogoutFromServiceError()
@@ -173,8 +178,7 @@ void FacebookAccount::disconnect()
 {
 	kDebug ( FBDBG ) ;
         m_service->setVisibility(false);
-	myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
-	QObject::disconnect ( m_service, 0, 0, 0 );
+        m_service->logoutFromService();        
 }
 
 Facebook::ChatService * FacebookAccount::service()
@@ -319,5 +323,22 @@ void FacebookAccount::slotBuddyThumbAvailable( const QString &buddyid, const QIm
     
     contact(buddyid)->setDisplayPicture(image);
 }
+
+void FacebookAccount::slotTypingEventAvailable( const QString &from, const QString &to )
+{
+    Q_UNUSED(to);
+    if ( ! contact(from) )
+        return;
+    
+    Kopete::ChatSession *mm = contact(from)->manager(Kopete::Contact::CanCreate);
+    // Tell the message manager that the buddy is typing
+    mm->receivedTypingMsg(contact(from), true);
+}
+
+void FacebookAccount::slotError( const QString &error )
+{
+}
+
+
 
 #include "facebookaccount.moc"
