@@ -100,7 +100,7 @@ static QString scrapValue( const QString &page, const QString &startText, const 
     qDebug() << "found start text at position " << index;
 
     // look for the next ", or endtext
-    int index2 = page.indexOf(endText, index + startText.length());
+    int index2 = page.indexOf(endText, index + startText.count());
     if ( index2 == -1 )
     {
         qDebug() << "Could not find end text: " << endText;
@@ -109,7 +109,7 @@ static QString scrapValue( const QString &page, const QString &startText, const 
     qDebug() << "found end text at position " << index2;
 
     // move to the first quote
-    index = index + startText.length();
+    index = index + startText.count();
     return page.mid(index, index2 - index);
 }
 
@@ -197,7 +197,7 @@ void ChatService::startLoginRequest()
 {
     _buddylist_poll_timer->stop();
     
-    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).length() << " cookies";
+    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).count() << " cookies";
     QList<QNetworkCookie> cookies;
     
     QMap<QString, QString> params;
@@ -219,7 +219,7 @@ void ChatService::startLoginRequest()
 
     _network->cookieJar()->setCookiesFromUrl(cookies, QUrl(FACEBOOK_URL));
 
-    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).length() << " cookies";
+    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).count() << " cookies";
 
     // it seems those are not really needed, until I figure what
     // are they for
@@ -245,7 +245,7 @@ void ChatService::startLoginRequest()
 void ChatService::slotLoginRequestFinished()
 {
     qDebug() << "connected to facebook";
-    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).length() << " cookies";
+    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).count() << " cookies";
 
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
     if ( !reply )
@@ -262,7 +262,7 @@ void ChatService::slotLoginRequestFinished()
         qDebug() << "cookie header: " << rawcookie;
         cookies << QNetworkCookie::parseCookies(rawcookie.toAscii());
     }
-    qDebug() << "Received " << cookies.length() << " cookies";
+    qDebug() << "Received " << cookies.count() << " cookies";
     
     _network->cookieJar()->setCookiesFromUrl(cookies, QUrl(FACEBOOK_URL));
         
@@ -293,7 +293,7 @@ void ChatService::slotLoginRequestFinished()
     else
         qDebug() << "c_user: " << _user_id;
 
-    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).length() << " cookies";
+    qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).count() << " cookies";
 
     // queue the job to grab the form_id
     QTimer::singleShot(0, this, SLOT(startRetrievePageRequest())); 
@@ -550,7 +550,7 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     qDebug() << "looking for incoming messages or new seq";
 
     // read the useless for
-    input->read(QString("for (;;);").length());
+    input->read(QString("for (;;);").count());
     QString json = input->readAll();
     
     JSonDriver parser;
@@ -675,7 +675,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     // bytes from the original input and give
     // that to the json parser, but if facebook changes
     // the format we will have hard time figuring out
-    responseInput->read(QString("for (;;);").length());
+    responseInput->read(QString("for (;;);").count());
     QString json = responseInput->readAll();
    
     JSonDriver parser;    
