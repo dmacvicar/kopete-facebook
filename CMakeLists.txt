@@ -1,7 +1,33 @@
+# to compile the plugin out of
+# kopete source tree
+if(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
+  find_package(KDE4 REQUIRED)
+  find_package(Qt4 REQUIRED)
+  INCLUDE_DIRECTORIES(${QT4_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${QT_QTCORE_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${QT_QTGUI_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${QT_QTNETWORK_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${KDE4_INCLUDE_DIR})
+  INCLUDE_DIRECTORIES(${KDE4_INCLUDES})
+
+  include (KDE4Defaults)
+  include (MacroLibrary)
+  find_path(KOPETE_INCLUDES NAMES kopeteversion.h PATHS ${CMAKE_INSTALL_PREFIX}/include/kopete)
+  if(NOT ${KOPETE_INCLUDES})
+    MESSAGE(FATAL "kopete headers not found")
+  endif(NOT ${KOPETE_INCLUDES})
+
+  find_path(QJSON_INCLUDES NAMES jason_driver.hh PATHS ${CMAKE_INSTALL_PREFIX}/include/qjson)
+  if(NOT ${QJSON_INCLUDES})
+    MESSAGE(FATAL "qjson headers not found")
+  endif(NOT ${QJSON_INCLUDES})
+endif(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
+
 add_subdirectory( icons )
 
 include_directories( 
-${KOPETE_INCLUDES} 
+${KOPETE_INCLUDES}
+${KOPETE_INCLUDES}/ui 
 ${CMAKE_CURRENT_SOURCE_DIR}/ui/ 
 )
 
