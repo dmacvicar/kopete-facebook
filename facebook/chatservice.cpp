@@ -709,6 +709,13 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
         int availableCount = buddy_list["availableCount"].toInt();
         QVariantMap userInfos = buddy_list["userInfos"].toMap();
 
+        if ( ! listChanged )
+        {            
+            qDebug() << "buddy list did not change. " << availableCount << " buddies available" ;
+            return;            
+        }
+        
+        
         foreach (QString userId, userInfos.keys())
         {
             BuddyInfo buddy;
