@@ -97,10 +97,6 @@ public slots:
     
 protected:
     Facebook::ChatService *m_service;
-    /**
-     * This simulates contacts going on and offline in sync with the account's status changes
-     */
-    void updateContactStatus();
 
 protected slots:
 
@@ -135,6 +131,11 @@ protected slots:
     void slotBuddyAvailable( const BuddyInfo &buddy, bool idle );
 
     /**
+     * buddy on available list
+     */
+    void slotBuddyNotAvailable( const BuddyInfo &buddy );
+
+    /**
      * a buddy is known
      */
     void slotBuddyInformation( const BuddyInfo &buddy );
@@ -156,11 +157,6 @@ protected slots:
      * Change the account's status.  Called by KActions and internally.
      */
     void slotGoOffline();
-    /**
-     * Show webcam.  Called by KActions and internally.
-     */
-    void slotShowVideo();
-
 };
 
 #endif

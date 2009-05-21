@@ -269,6 +269,11 @@ signals:
    * emitted when a buddy is available (may be idle though)
    */
   void buddyAvailable( const BuddyInfo &info , bool idle);
+
+  /**
+   * emitted when a buddy is available (may be idle though)
+   */
+  void buddyNotAvailable( const BuddyInfo &info );
   
   /**
    * emitted when there is a message available for processing.

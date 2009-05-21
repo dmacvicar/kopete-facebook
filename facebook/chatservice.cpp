@@ -60,18 +60,6 @@ namespace Facebook
 // poll buddylist every 3 min
 #define FACEBOOK_BUDDYLIST_POLL_INTERVAL 180000
 
-enum ResponseState
-{
-    UnknownObject,
-    GlobalObject,
-    PayLoadObject,
-    BuddyListObject,
-    NowAvailableListObject,
-    NowAvailableObject,
-    UserInfosObject,
-    UserInfoObject,
-};
-
 /**
  * encodes a collection of parameters and values in POST form
  */
@@ -136,6 +124,10 @@ ChatService::ChatService( QObject *parent )
     QObject::connect(_network, SIGNAL(sslErrors( QNetworkReply *, const QList<QSslError> &)), this, SLOT(slotSslErrors( QNetworkReply *, const QList<QSslError> & )));
 
     // timer for the buddylist, but we dont start it until we get the form_id
+    // what we do is, once the form_id is received, if it is the form_id we get after
+    // login in, then we schedule it inmediately. Otherwise we wait the interval time.
+    // after the first buddy list request, after decoding we set start the timer, which
+    // we stop when starting the request.
     QObject::connect(_buddylist_poll_timer, SIGNAL(timeout()), this, SLOT(startRetrieveBuddyListRequest()));
 }
 
@@ -174,6 +166,7 @@ void ChatService::logoutFromService()
     _loggedin = false;
     _seq = -1;
     _form_id = "";
+    _availableBuddies.clear();
     emit logoutFromServiceFinished();
 }
   
@@ -314,6 +307,9 @@ void ChatService::slotLoginRequestError(QNetworkReply::NetworkError code)
 
 void ChatService::startRetrieveBuddyListRequest()
 {
+    // avoids two request in parallel
+    _buddylist_poll_timer->stop();
+   
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_BUDDYLIST_URL);
     params.insert("user", _user_id);
@@ -340,11 +336,16 @@ void ChatService::slotRetrieveBuddyListRequestFinished()
 
     qDebug() << "got buddy list";
     decodeBuddyListResponse(reply);
+
+    // set the next one
+    _buddylist_poll_timer->start(FACEBOOK_BUDDYLIST_POLL_INTERVAL);
 }
 
 void ChatService::slotRetrieveBuddyListRequestError(QNetworkReply::NetworkError code)
 {
     qDebug() << "error on retrieve buddy list: " << code;
+    // set the next one
+    _buddylist_poll_timer->start(FACEBOOK_BUDDYLIST_POLL_INTERVAL);
 }
 
 void ChatService::startRetrievePageRequest()
@@ -616,6 +617,7 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                     if ( ms.toMap()["type"].toString() == "typ" )
                     {
                         // typing event
+                        
                         qDebug() << "TODO typing event";                       
                     }
                     else if ( ms.toMap()["type"].toString() == "msg" )
@@ -712,21 +714,42 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
             emit buddyInformation(buddy);
         }
         QVariantMap nowAvailableList = buddy_list["nowAvailableList"].toMap();
-        foreach (QString userId, nowAvailableList.keys())
+
+        // look all contacts in our list that were not in the new
+        // available list and inform them as offline
+        foreach (QString userId, _availableBuddies.keys() )
         {
-            // see if it was not already in the available list
-            if ( ! _availableBuddies.contains(userId) )
+            if ( ! nowAvailableList.contains(userId) )
             {
-                _availableBuddies[userId] = nowAvailableList.value(userId).toMap()["i"].toBool();
+                _availableBuddies.remove(userId);                
                 if ( _buddyInfos.contains(userId) )
-                    emit buddyAvailable(_buddyInfos.value(userId), _availableBuddies[userId]);
+                    emit buddyNotAvailable(_buddyInfos.value(userId));
                 else
                     qDebug() << "no info for buddy " << userId;
             }
-            // now look all contacts in our list that were not in the new
-            // available list and inform them as offline
+            
         }
-        
+
+        // update available contacts
+        foreach (QString userId, nowAvailableList.keys())
+        {
+            bool idle = nowAvailableList.value(userId).toMap()["i"].toBool();
+            if ( _buddyInfos.contains(userId) )
+            {
+                // if the user id is already there with the same idle status, don't emit
+                // anything
+                if ( _availableBuddies.contains(userId) && 
+                     ( _availableBuddies.value(userId) == idle ) )
+                    continue;
+
+                _availableBuddies[userId] = idle;                
+                emit buddyAvailable(_buddyInfos.value(userId), _availableBuddies[userId]);
+            }           
+            else
+            {                
+                qDebug() << "no info for buddy " << userId;         
+            }            
+        }        
     }
     else
     {

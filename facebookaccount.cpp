@@ -61,15 +61,13 @@ void FacebookAccount::fillActionMenu( KActionMenu *actionMenu )
 {
 	Kopete::Account::fillActionMenu( actionMenu );
 
-	actionMenu->addSeparator();
-
-	KAction *action;
-
-	action = new KAction (KIcon("facebook_showvideo"), i18n ("Show my own video..."), actionMenu );
+	//actionMenu->addSeparator();
+	//KAction *action;
+	//action = new KAction (KIcon("facebook_showvideo"), i18n ("Show my own video..."), actionMenu );
         //, "actionShowVideo");
-	QObject::connect( action, SIGNAL(triggered(bool)), this, SLOT(slotShowVideo()) );
-	actionMenu->addAction(action);
-	action->setEnabled( isConnected() );
+	//QObject::connect( action, SIGNAL(triggered(bool)), this, SLOT(slotShowVideo()) );
+	//actionMenu->addAction(action);
+	//action->setEnabled( isConnected() );
 }
 
 bool FacebookAccount::createContact(const QString& contactId, Kopete::MetaContact* parentContact)
@@ -130,10 +128,10 @@ void FacebookAccount::connectWithPassword (const QString & pass)
     m_service = new Facebook::ChatService(this);
 
     m_service->setLoginInformation(login, pass1);
-    
-    m_service->loginToService();
 
     myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookConnecting );
+    
+    m_service->loginToService();
 
     QObject::connect(m_service, SIGNAL(loginToServiceFinished()), this, SLOT(slotLoginToServiceFinished()));
     QObject::connect(m_service, SIGNAL(loginToServiceError()), this, SLOT(slotLoginToServiceError()));
@@ -148,6 +146,7 @@ void FacebookAccount::slotLoginToServiceFinished()
 
     // connect changed status and buddy signals
     QObject::connect(m_service, SIGNAL(buddyAvailable(const BuddyInfo &, bool)), this, SLOT(slotBuddyAvailable(const BuddyInfo &, bool)));
+    QObject::connect(m_service, SIGNAL(buddyNotAvailable(const BuddyInfo &)), this, SLOT(slotBuddyNotAvailable(const BuddyInfo &)));
     QObject::connect(m_service, SIGNAL(buddyInformation(const BuddyInfo &)), this, SLOT(slotBuddyInformation(const BuddyInfo &)));
     QObject::connect(m_service, SIGNAL(messageAvailable(const ChatMessage &)), this, SLOT(slotMessageAvailable(const ChatMessage &)));
     QObject::connect(m_service, SIGNAL(buddyThumbAvailable( const QString &, const QImage & )), this, SLOT(slotBuddyThumbAvailable( const QString &, const QImage & )));
@@ -167,6 +166,7 @@ void  FacebookAccount::slotLogoutFromServiceFinished()
 
 void  FacebookAccount::slotLogoutFromServiceError()
 {
+
 }
 
 void FacebookAccount::disconnect()
@@ -194,9 +194,7 @@ void FacebookAccount::slotGoOnline ()
         {            
 		myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOnline );
                 m_service->setVisibility(true);
-        }
-        
-	updateContactStatus();
+        }        
 }
 
 void FacebookAccount::slotGoAway ()
@@ -207,7 +205,6 @@ void FacebookAccount::slotGoAway ()
 		connect();
 
 	myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookAway );
-	updateContactStatus();
 }
 
 
@@ -217,12 +214,6 @@ void FacebookAccount::slotGoOffline ()
 
 	if (isConnected ())
 		disconnect ();
-
-	updateContactStatus();
-}
-
-void FacebookAccount::slotShowVideo()
-{
 }
 
 void FacebookAccount::receivedMessage( const QString &message )
@@ -241,15 +232,6 @@ void FacebookAccount::receivedMessage( const QString &message )
 		messageSender->receivedMessage( message );
 	else
 		kWarning(14210) << "unable to look up contact for delivery";
-}
-
-void FacebookAccount::updateContactStatus()
-{
-	QHashIterator<QString, Kopete::Contact*>itr( contacts() );
-	for ( ; itr.hasNext(); ) {
-		itr.next();
-		itr.value()->setOnlineStatus( myself()->onlineStatus() );
-	}
 }
 
 void  FacebookAccount::slotMessageAvailable( const Facebook::ChatMessage &message )
@@ -306,6 +288,17 @@ void  FacebookAccount::slotBuddyAvailable( const Facebook::BuddyInfo &buddy, boo
     contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
 }
 
+void  FacebookAccount::slotBuddyNotAvailable( const Facebook::BuddyInfo &buddy )
+{
+    // server -> local
+    if ( !contact( buddy.buddyId() ) )
+    {
+	kDebug(14210) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
+        return;
+    }
+    contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
+}
+
 void  FacebookAccount::slotBuddyInformation( const Facebook::BuddyInfo &buddy )
 {
     // server -> local
@@ -314,6 +307,7 @@ void  FacebookAccount::slotBuddyInformation( const Facebook::BuddyInfo &buddy )
 	kDebug(14210) << "Contact " << buddy.buddyId() << " is not in the contact list. Adding...";
 	Kopete::Group *g = Kopete::ContactList::self()->findGroup("Facebook");
 	addContact(buddy.buddyId(), buddy.name().isEmpty() ? buddy.buddyId() : buddy.name() , g, Kopete::Account::ChangeKABC);
+        contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
     }
     m_service->requestPicture(buddy.buddyId());
 }
