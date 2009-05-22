@@ -88,15 +88,9 @@ void FacebookAccount::setAway( bool away, const QString & /* reason */ )
 		slotGoOnline();
 }
 
-#if KOPETE_IS_VERSION(0,70,85)
 void FacebookAccount::setOnlineStatus(const Kopete::OnlineStatus& status, const Kopete::StatusMessage &reason, const OnlineStatusOptions& options)
-#else
-void FacebookAccount::setOnlineStatus(const Kopete::OnlineStatus& status, const Kopete::StatusMessage &reason )
-#endif
 {
-#if KOPETE_IS_VERSION(0,70,85)
     Q_UNUSED(options);
-#endif
 
     if ( status.status() == Kopete::OnlineStatus::Online &&
          myself()->onlineStatus().status() == Kopete::OnlineStatus::Offline )
