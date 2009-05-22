@@ -686,7 +686,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     // the format we will have hard time figuring out
     responseInput->read(QString("for (;;);").count());
     QString json = responseInput->readAll();
-   
+
     JSonDriver parser;    
     bool status = true;
     QVariant result = parser.parse(json, &status);

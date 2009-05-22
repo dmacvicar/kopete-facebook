@@ -20,6 +20,7 @@
 
 #include "kopetepasswordedaccount.h"
 #include "facebook/chatservice.h"
+#include "kopeteversion.h"
 
 class KActionMenu;
 namespace Kopete 
@@ -68,8 +69,16 @@ public:
     /**
      * Called when Kopete status is changed globally
      */
+#if KOPETE_IS_VERSION( 0, 70, 85)
+
     virtual void setOnlineStatus(const Kopete::OnlineStatus& status , const Kopete::StatusMessage &reason = Kopete::StatusMessage(),
 				 const OnlineStatusOptions& options = None);
+#else
+
+    virtual void setOnlineStatus(const Kopete::OnlineStatus& status, const Kopete::StatusMessage &reason = Kopete::StatusMessage() );
+
+#endif
+
     virtual void setStatusMessage(const Kopete::StatusMessage& statusMessage);
 
     /**
