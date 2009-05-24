@@ -636,12 +636,14 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                 // we have the old seq -1, so we only got the initial seq
                 // on the next message poll we will get messages
                 qDebug() << "got initial seq: " << newSeq;
-                return;                
+                // we can't return so we set the next message get
+                // shot
             }
             else if ( oldSeq == 0 && newSeq == 0 )
             {
                 // our old seq was zero, and now it got reseted, to zero
                 // which may  be some problem.
+                qDebug() << "bad: old seq and new seq are 0";                
                 disconnect();
                 emit error(ErrorDisconnected, "");
                 return;                
@@ -650,8 +652,9 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
             {
                 // we had a normal seq, even zero, and it got resetted, this
                 // means we have to read the channel value and form_id again
+                qDebug() << "seq reset by server";                
                 QTimer::singleShot(0, this, SLOT(startRetrievePageRequest()));
-                return;
+                return;                
             }                                
         }
         else if ( tValue == "msg" )
