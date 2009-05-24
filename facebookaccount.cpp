@@ -34,7 +34,9 @@
 
 #include "facebookcontact.h"
 #include "facebookprotocol.h"
+#include "facebookchatsession.h"
 
+using Facebook::ChatService;
 using Facebook::ChatMessage;
 using Facebook::BuddyInfo;
 
@@ -142,18 +144,19 @@ void FacebookAccount::connectWithPassword (const QString & pass)
 
 void FacebookAccount::slotLoginToServiceFinished()
 {
-    // Init the myself contact
-    //setMyself( new FacebookContact( this, m_service->userId(), accountId(), Kopete::ContactList::self()->myself() ) );
     myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOnline );
+    m_service->setVisibility(true);
 
     // connect changed status and buddy signals
     QObject::connect(m_service, SIGNAL(buddyAvailable(const BuddyInfo &, bool)), this, SLOT(slotBuddyAvailable(const BuddyInfo &, bool)));
     QObject::connect(m_service, SIGNAL(buddyNotAvailable(const BuddyInfo &)), this, SLOT(slotBuddyNotAvailable(const BuddyInfo &)));
     QObject::connect(m_service, SIGNAL(buddyInformation(const BuddyInfo &)), this, SLOT(slotBuddyInformation(const BuddyInfo &)));
     QObject::connect(m_service, SIGNAL(messageAvailable(const ChatMessage &)), this, SLOT(slotMessageAvailable(const ChatMessage &)));
+    QObject::connect(m_service, SIGNAL(messageSendFinished(const ChatMessage &)), this, SLOT(slotMessageAckAvailable(const ChatMessage &)));
+    QObject::connect(m_service, SIGNAL(messageSendError(const ChatMessage &)), this, SLOT(slotMessageErrorAvailable(const ChatMessage &)));
     QObject::connect(m_service, SIGNAL(buddyThumbAvailable( const QString &, const QImage & )), this, SLOT(slotBuddyThumbAvailable( const QString &, const QImage & )));
     QObject::connect(m_service, SIGNAL(typingEventAvailable(const QString &, const QString &)), this, SLOT(slotTypingEventAvailable(const QString &, const QString &)));
-    QObject::connect(m_service, SIGNAL(error(const QString &)), this, SLOT(slotError(const QString &)));
+    QObject::connect(m_service, SIGNAL(error( ChatService::ErrorType, const QString &)), this, SLOT(slotError(ChatService::ErrorType, const QString &)));
 }
     
 void FacebookAccount::slotLoginToServiceError()
@@ -178,7 +181,15 @@ void FacebookAccount::disconnect()
 {
 	kDebug ( FBDBG ) ;
         m_service->setVisibility(false);
-        m_service->logoutFromService();        
+        m_service->logoutFromService();
+
+        // set all contacts to offline
+        QHashIterator<QString, Kopete::Contact*>itr( contacts() );
+        for ( ; itr.hasNext(); ) {
+                itr.next();
+                itr.value()->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
+        }
+     
 }
 
 Facebook::ChatService * FacebookAccount::service()
@@ -191,14 +202,7 @@ void FacebookAccount::slotGoOnline ()
 	kDebug ( FBDBG ) ;
 
 	if (!isConnected ())
-        {
 		connect ();
-        }
-	else
-        {            
-		myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOnline );
-                m_service->setVisibility(true);
-        }        
 }
 
 void FacebookAccount::slotGoAway ()
@@ -208,6 +212,7 @@ void FacebookAccount::slotGoAway ()
 	if (!isConnected ())
 		connect();
 
+        m_service->setVisibility(true);
 	myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookAway );
 }
 
@@ -216,26 +221,22 @@ void FacebookAccount::slotGoOffline ()
 {
 	kDebug ( FBDBG ) ;
 
+        m_service->setVisibility(false);
+
 	if (isConnected ())
 		disconnect ();
 }
 
-void FacebookAccount::receivedMessage( const QString &message )
+void FacebookAccount::slotMessageAckAvailable( const ChatMessage &message )
 {
-	// Look up the contact the message is from
-	QString from;
-	FacebookContact* messageSender;
+    FacebookChatSession *mm = static_cast<FacebookChatSession *>(contact(message.to())->manager(Kopete::Contact::CanCreate));
+    mm->slotMessageAck(message.messageId());                
+}
 
-	from = message.section( ':', 0, 0 );
-	Kopete::Contact* contact = contacts().value(from);
-	messageSender = dynamic_cast<FacebookContact *>( contact );
-
-	kDebug( FBDBG ) << " got a message from " << from << ", " << messageSender << ", is: " << message;
-	// Pass it on to the contact to process and display via a KMM
-	if ( messageSender )
-		messageSender->receivedMessage( message );
-	else
-		kWarning(FBDBG) << "unable to look up contact for delivery";
+void FacebookAccount::slotMessageErrorAvailable( const ChatMessage &message )
+{
+    FacebookChatSession *mm = static_cast<FacebookChatSession *>(contact(message.to())->manager(Kopete::Contact::CanCreate));
+    mm->slotMessageError(message.messageId());                
 }
 
 void  FacebookAccount::slotMessageAvailable( const Facebook::ChatMessage &message )
@@ -247,6 +248,7 @@ void  FacebookAccount::slotMessageAvailable( const Facebook::ChatMessage &messag
     // outgoing or incoming
     if ( message.from() == m_service->userId() )
     {
+        kDebug(FBDBG) << "got own sent message back (ack)";        
         // outgoing, we get our own messages back
         // we should use this for confirmation or something
         // like that
@@ -335,8 +337,16 @@ void FacebookAccount::slotTypingEventAvailable( const QString &from, const QStri
     mm->receivedTypingMsg(contact(from), true);
 }
 
-void FacebookAccount::slotError( const QString &error )
+void FacebookAccount::slotError( ChatService::ErrorType error, const QString &desc )
 {
+    switch ( error )
+    {
+    case ChatService::ErrorDisconnected:
+        Kopete::Utils::notifyConnectionLost(this);
+        break;
+    default:
+        break;        
+    }    
 }
 
 

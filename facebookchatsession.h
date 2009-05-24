@@ -23,7 +23,10 @@ public:
     FacebookChatSession( Kopete::Protocol *protocol, const Kopete::Contact *user, Kopete::ContactPtrList others, Facebook::ChatService *service );
     virtual ~FacebookChatSession();
 public slots:
+    // mark message in the session as sent
     void slotMessageAck( const QString &messageId );
+    // mark message in the session as error
+    void slotMessageError( const QString &messageId );
 protected slots:
     void slotSendTyping(bool typ);
     void slotMessageSent(Kopete::Message &, Kopete::ChatSession *);

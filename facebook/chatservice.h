@@ -49,6 +49,12 @@ public:
   ChatService(QObject *parent);
   ~ChatService();
 
+  enum ErrorType
+  {
+    ErrorUnknown = 0x0,
+    ErrorDisconnected = 0x1
+  };
+
   /**
    * Sets the login information. This is required for @ref connecToService
    * to succeed
@@ -89,7 +95,7 @@ public:
   /**
    * sends a message
    */
-  void sendMessage(const QString &userid, const QString &message);
+  void sendMessage( const ChatMessage &message );
 
   /**
    * request picture
@@ -97,6 +103,11 @@ public:
   void requestPicture( const QString &buddyid );
 
 protected slots:
+  /**
+   * cleanups cookies and reset internal structures
+   */
+  void disconnect();
+
   // The following functions are the actual requests to the
   // facebook server
 
@@ -130,7 +141,7 @@ protected slots:
   /**
    * Initiates a message send request
    */
-  void startMessageSendRequest(const QString &userid, const QString &message );
+  void startMessageSendRequest( const ChatMessage &message );
 
   /**
    * Initiates a request to read incoming messages
@@ -248,6 +259,18 @@ protected slots:
    */
   void slotRetrievePictureRequestError(QNetworkReply::NetworkError code);
 
+  /**
+   * Handles the response from the message ack request
+   * when it is finished
+   */
+  void slotMessageAckRequestFinished();
+  /**
+   * Handles the response from the message ack request
+   * when it has failed
+   */
+  void slotMessageAckRequestError(QNetworkReply::NetworkError code);
+
+
 protected:
   /**
    * returns the incoming message url for the given sequence number
@@ -277,8 +300,23 @@ signals:
   
   /**
    * emitted when there is a message available for processing.
+   * note that messages that we send also come here
+   *
+   * You need to decide if your ack is when the send request
+   * is complete, or when the server sends the message back to
+   * you
    */
   void messageAvailable( const ChatMessage &message );
+
+  /**
+   * message request completed
+   */
+  void messageSendFinished( const ChatMessage &message );
+
+  /**
+   * message request ended with error
+   */
+  void messageSendError( const ChatMessage &message );
 
   /**
    * emitted when a photo has been downloaded
@@ -293,7 +331,7 @@ signals:
   /**
    * emitted when something bad happens
    */
-  void error( const QString &description );
+  void error( ErrorType error, const QString &description );
 
 private:
   QNetworkAccessManager *_network;
@@ -313,6 +351,7 @@ private:
 
   QMap<QString, BuddyInfo> _buddyInfos;
   QMap<QString, bool> _availableBuddies;
+  QMap<QString, ChatMessage> _messageQueue;
 };
 
 }

@@ -26,10 +26,12 @@
 #include "kopeteavatarmanager.h"
 #include "kopeteaccount.h"
 #include "kopetechatsessionmanager.h"
+#include "kopetechatsession.h"
 #include "kopetemetacontact.h"
 
 #include "facebookaccount.h"
 #include "facebookprotocol.h"
+#include "facebookchatsession.h"
 
 FacebookContact::FacebookContact( Kopete::Account* _account, const QString &uniqueName,
 				  const QString &displayName, Kopete::MetaContact *parent )
@@ -76,26 +78,23 @@ void FacebookContact::serialize( QMap< QString, QString > &serializedData, QMap<
 Kopete::ChatSession* FacebookContact::manager( CanCreateFlags canCreateFlags )
 {
     kDebug( FBDBG ) ;
-    if ( m_msgManager )
-    {
-	return m_msgManager;
+
+    Kopete::ContactPtrList chatmembers;
+    chatmembers.append (this);
+
+    Kopete::ChatSession * m_msgManager = Kopete::ChatSessionManager::self()->findChatSession (account()->myself(), chatmembers, protocol());
+
+    FacebookChatSession *manager = qobject_cast <FacebookChatSession *>(m_msgManager);
+    if (!manager && canCreateFlags == Kopete::Contact::CanCreate)
+    {        
+        //Kopete::ChatSession::Form form = ( m_type == Group ?
+	//				   Kopete::ChatSession::Chatroom : Kopete::ChatSession::Small );
+        //m_msgManager = Kopete::ChatSessionManager::self()->create(account()->myself(), contacts, protocol(), form );
+        m_msgManager = new FacebookChatSession(protocol(), account()->myself(),
+                                                  chatmembers, static_cast<FacebookAccount *>( account() )->service() );
+        connect(m_msgManager, SIGNAL(destroyed()), this, SLOT(slotChatSessionDestroyed()));
     }
-    else if ( canCreateFlags == CanCreate )
-    {
-	QList<Kopete::Contact*> contacts;
-	contacts.append(this);
-	Kopete::ChatSession::Form form = ( m_type == Group ?
-					   Kopete::ChatSession::Chatroom : Kopete::ChatSession::Small );
-	m_msgManager = Kopete::ChatSessionManager::self()->create(account()->myself(), contacts, protocol(), form );
-	connect(m_msgManager, SIGNAL(messageSent(Kopete::Message&, Kopete::ChatSession*)),
-		this, SLOT( sendMessage( Kopete::Message& ) ) );
-	connect(m_msgManager, SIGNAL(destroyed()), this, SLOT(slotChatSessionDestroyed()));
-	return m_msgManager;
-    }
-    else
-    {
-	return 0;
-    }
+    return m_msgManager;
 }
 
 QList<KAction *> *FacebookContact::customContextMenuActions() //OBSOLETE
@@ -117,11 +116,7 @@ void FacebookContact::showContactSettings()
 
 void FacebookContact::sendMessage( Kopete::Message &message )
 {
-    kDebug( FBDBG ) ;
-    // convert to the what the server wants
-    // For this 'protocol', there's nothing to do
-    // send it
-    static_cast<FacebookAccount *>( account() )->service()->sendMessage( message.to().first()->contactId(), message.plainBody() );
+    kDebug( FBDBG ) ;    
     // give it back to the manager to display
     manager()->appendMessage( message );
     // tell the manager it was sent successfully
@@ -138,7 +133,7 @@ void FacebookContact::receivedMessage( const QString &message )
     newMessage.setDirection( Kopete::Message::Inbound );
    
     // Add it to the manager
-    manager(CanCreate)->appendMessage (newMessage);
+    manager(CanCreate)->appendMessage(newMessage);
 }
 
 void FacebookContact::slotChatSessionDestroyed()

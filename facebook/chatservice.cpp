@@ -55,6 +55,8 @@ namespace Facebook
 #define FACEBOOK_VISIBILITY_URL "http://apps.facebook.com/ajax/chat/settings.php"
 #define FACEBOOK_STATUS_URL "http://www.facebook.com/updatestatus.php"
 #define FACEBOOK_MESSAGE_URL "http://www.facebook.com/ajax/chat/send.php"
+#define FACEBOOK_ACK_MESSAGE_URL "http://www.facebook.com/ajax/chat/settings.php?_ecdc=false"
+
 // only wait one second as the rest is done by the comet style connection
 #define FACEBOOK_MESSAGE_POLL_INTERVAL 1000
 // poll buddylist every 3 min
@@ -159,7 +161,7 @@ void ChatService::loginToService()
     qDebug() << ">>>> login request sent";
 }
 
-void ChatService::logoutFromService()
+void ChatService::disconnect()
 {
     // clear cookies
     _network->setCookieJar(new QNetworkCookieJar());
@@ -167,6 +169,11 @@ void ChatService::logoutFromService()
     _seq = -1;
     _form_id = "";
     _availableBuddies.clear();
+}
+
+void ChatService::logoutFromService()
+{
+    disconnect();    
     emit logoutFromServiceFinished();
 }
   
@@ -187,10 +194,11 @@ void ChatService::setStatusMessage(const QString &status)
     startUpdateStatusRequest(status);
 }
 
-void ChatService::sendMessage(const QString &userid, const QString &message)
+void ChatService::sendMessage(const ChatMessage &message )
 {
-    qDebug() << "Sending message to " << userid;
-    startMessageSendRequest(userid, message);
+    qDebug() << "sendMessage() Sending message to " << message.to();
+    startMessageSendRequest(message);
+    qDebug() << "sendMessage() DONE Sending message to " << message.to();
 }
 
 void ChatService::startLoginRequest()
@@ -452,6 +460,7 @@ void ChatService::slotUpdateVisibilityRequestError(QNetworkReply::NetworkError c
 
 void ChatService::startUpdateStatusRequest(const QString &status)
 {
+    qDebug() << "starting update status request...";    
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_STATUS_URL);
     // visibility=true&post_form_id=1234
@@ -468,46 +477,81 @@ void ChatService::startUpdateStatusRequest(const QString &status)
 
 void ChatService::slotUpdateStatusRequestFinished()
 {
-    qDebug() << "status updated";
+    qDebug() << "update status request completed";
 }
 
 void ChatService::slotUpdateStatusRequestError(QNetworkReply::NetworkError code)
 {
-    qDebug() << "error on when setting status" << code;
+    qDebug() << "error on update status request" << code;
 }
 
-void ChatService::startMessageSendRequest(const QString &userid, const QString &message)
+void ChatService::startMessageSendRequest(const ChatMessage &message)
 {
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_MESSAGE_URL);
     // msg_text={message}&msg_id=3409501070&client_time={timestamp}&to={uid}&popped_out=true&num_tabs=1&post_form_id=1234
-    params.insert("msg_text", message );
-    QString messageid = QString::number(qrand());
-    params.insert("msg_id", messageid );
+    params.insert("msg_text", message.text() );
+
+    qDebug() << "sent request for message to " << message.to() << " with message id " << message.messageId();
+    params.insert("msg_id", message.messageId() );
     params.insert("client_time", QString::number(QDateTime::currentDateTime().toTime_t()));
-    params.insert("to", userid);
+    params.insert("to", message.to());
     params.insert("popped_out", "true");
     params.insert("num_tabs", "1");
     params.insert("post_form_id", _form_id);
+
+    _messageQueue[message.messageId()] = message;
     
     QString data = encodePostParams(params);
-    QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
-    reply->setParent(this);
-    
-    qDebug() << "sent request for message to " << userid << " with message id " << messageid;
+
+    // pass the message id as an attribute
+    QNetworkRequest request(url);
+    request.setAttribute(QNetworkRequest::User, message.messageId());
+
+    qDebug() << "startMessageSendRequest() posting to " << url;
+    QNetworkReply *reply = _network->post(request, data.toAscii());
+    qDebug() << "startMessageSendRequest() going to set parent";    
+    reply->setParent(this);   
+    qDebug() << "startMessageSendRequest() connecting signals";
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotMessageSendRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotMessageSendRequestError(QNetworkReply::NetworkError)));
+    qDebug() << "startMessageSendRequest() done";
 }
 
 
 void ChatService::slotMessageSendRequestFinished()
 {
-    qDebug() << "message sent";
+    qDebug() << "request finished, message sent, emmiting ack";
+    QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+    if ( !reply )
+        return;
+    QString messageid = reply->request().attribute(QNetworkRequest::User).toString();
+    if ( messageid.isEmpty() )
+        return;
+
+    if ( ! _messageQueue.contains(messageid) )
+        return;
+    
+    emit messageSendFinished(_messageQueue[messageid]);
+    _messageQueue.remove(messageid);
 }
 
 void ChatService::slotMessageSendRequestError(QNetworkReply::NetworkError code)
 {
-    qDebug() << "error on when sending message" << code;
+    qDebug() << "request finished with error , message not sent, emmiting error";
+    QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+    if ( !reply )
+        return;
+    QString messageid = reply->request().attribute(QNetworkRequest::User).toString();
+    if ( messageid.isEmpty() )
+        return;
+
+    if ( ! _messageQueue.contains(messageid) )
+        return;
+    
+    emit messageSendError(_messageQueue[messageid]);
+    _messageQueue.remove(messageid);
+
 }
 
 QUrl ChatService::incomingMessagesUrl( int seq )
@@ -583,17 +627,32 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
         }
         else if ( tValue == "refresh" )
         {
+            int oldSeq = _seq;
             newSeq = result.toMap()["seq"].toInt();
-            if ( _seq == -1 )
+            _seq = newSeq;
+
+            if ( oldSeq < 0 )
             {
+                // we have the old seq -1, so we only got the initial seq
+                // on the next message poll we will get messages
                 qDebug() << "got initial seq: " << newSeq;
-                _seq = newSeq;
+                return;                
+            }
+            else if ( oldSeq == 0 && newSeq == 0 )
+            {
+                // our old seq was zero, and now it got reseted, to zero
+                // which may  be some problem.
+                disconnect();
+                emit error(ErrorDisconnected, "");
+                return;                
             }
             else
             {
-                QTimer::singleShot(FACEBOOK_MESSAGE_POLL_INTERVAL, this, SLOT(startRetrievePageRequest()));
+                // we had a normal seq, even zero, and it got resetted, this
+                // means we have to read the channel value and form_id again
+                QTimer::singleShot(0, this, SLOT(startRetrievePageRequest()));
                 return;
-            }
+            }                                
         }
         else if ( tValue == "msg" )
         {
@@ -637,7 +696,23 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                         {
                             qDebug() << message;
                             emit messageAvailable(message);
-                        }
+                            // send back a ack simulation
+                            // however we dont care about the result
+                            // the ack only if the message is not set _to_ us
+                            if ( message.from() != userId() )
+                            {
+                                qDebug() << "sending ack for message from " << message.fromName();                                
+                                QMap<QString,QString> params;
+                                params.insert("focus_chat", message.from() );
+                                params.insert("windows_id", "12345" );                                                    params.insert("post_form_id", _form_id );
+                                QString data = encodePostParams(params);
+                                QUrl ackurl(FACEBOOK_ACK_MESSAGE_URL);
+                                QNetworkReply *reply = _network->post(QNetworkRequest(ackurl), data.toAscii() );
+                                reply->setParent(this);
+                                QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotMessageAckRequestFinished()));
+                                QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotMessageAckRequestError(QNetworkReply::NetworkError)));                            
+                            }
+                        }                        
                         else
                         {
                             qDebug() << "Error decoding message";
@@ -666,6 +741,17 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
         qDebug() << json;
         
     }
+}
+
+void ChatService::slotMessageAckRequestFinished()
+{
+    qDebug() << "message ack done";    
+}
+
+
+void ChatService::slotMessageAckRequestError(QNetworkReply::NetworkError code)
+{
+    Q_UNUSED(code);
 }
 
 void ChatService::decodeBuddyListResponse( QIODevice *responseInput )

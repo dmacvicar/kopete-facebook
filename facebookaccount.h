@@ -88,14 +88,6 @@ public:
      */
     Facebook::ChatService *service();
     
-public slots:
-
-    /**
-     * Called by the server when it has a message for us.
-     * This identifies the sending Kopete::Contact and passes it a Kopete::Message
-     */
-    void receivedMessage( const QString &message );
-    
 protected:
     Facebook::ChatService *m_service;
 
@@ -125,6 +117,16 @@ protected slots:
      * a message is available
      */
     void slotMessageAvailable( const ChatMessage &message );
+
+    /**
+     * a message is ack available
+     */
+    void slotMessageAckAvailable( const ChatMessage &message );
+
+    /**
+     * a message is ack available
+     */
+    void slotMessageErrorAvailable( const ChatMessage &message );
 
     /**
      * buddy on available list
@@ -167,7 +169,7 @@ protected slots:
     /**
      * something bad happened
      */
-    void slotError( const QString &error );
+    void slotError( Facebook::ChatService::ErrorType error, const QString &desc );
 
 };
 

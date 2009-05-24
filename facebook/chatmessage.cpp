@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include "facebook/chatmessage.h"
 
+unsigned int Facebook::ChatMessage::_idCounter = 0;
+
 namespace Facebook {
 
 ChatMessage::ChatMessage( const QString &messageId )
@@ -10,7 +12,10 @@ ChatMessage::ChatMessage( const QString &messageId )
  
 ChatMessage::ChatMessage()
 {
-    _id = QString::number(qrand());
+    _idCounter++;
+    QTime midnight(0, 0, 0);
+    qsrand(midnight.secsTo(QTime::currentTime()));
+    _id = QString::number((unsigned int) (qrand() + _idCounter) & 0xFFFFFFFF);
 }    
    
 ChatMessage::~ChatMessage()

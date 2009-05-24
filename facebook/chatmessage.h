@@ -138,6 +138,8 @@ private:
     QString _toFirstName;
     QString _fromName;
     QString _fromFirstName;
+
+    static unsigned int _idCounter;
 };
 
 }

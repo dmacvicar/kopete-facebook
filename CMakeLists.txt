@@ -41,6 +41,7 @@ set(kopete_facebook_PART_SRCS
    facebookprotocol.cpp 
    facebookcontact.cpp 
    facebookaccount.cpp 
+   facebookchatsession.cpp 
    facebookaddcontactpage.cpp 
    facebookeditaccountwidget.cpp 
    ${facebook_SRCS}

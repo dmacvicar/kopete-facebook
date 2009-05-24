@@ -74,3 +74,14 @@ void FacebookChatSession::slotMessageAck( const QString &messageId )
     if (m_messagesSentQueue.empty ())
         messageSucceeded ();
 }
+
+void FacebookChatSession::slotMessageError( const QString &messageId )
+{
+    this->receivedMessageState(m_messagesSentQueue[messageId].id(), Kopete::Message::StateError );
+
+    m_messagesSentQueue.remove(messageId);
+    // remove the blinking icon when there are no messages
+    // waiting for delivery
+    if (m_messagesSentQueue.empty ())
+        messageSucceeded ();
+}
