@@ -1,6 +1,6 @@
 # to compile the plugin out of
 # kopete source tree
-if(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
+if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
   find_package(KDE4 REQUIRED)
   find_package(Qt4 REQUIRED)
   INCLUDE_DIRECTORIES(${QT4_INCLUDE_DIR})
@@ -21,7 +21,7 @@ if(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
   if(NOT ${QJSON_INCLUDES})
     MESSAGE(FATAL "qjson headers not found")
   endif(NOT ${QJSON_INCLUDES})
-endif(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
+endif(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_subdirectory( icons )
 
