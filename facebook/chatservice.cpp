@@ -39,7 +39,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkCookieJar>
 
-#include "qjson/json_driver.hh"
+#include <qjson/json_driver.hh>
 
 #include "facebook/chatservice.h"
 #include "facebook/chatmessage.h"
