@@ -35,9 +35,9 @@ find_package(QJson REQUIRED)
 
 add_subdirectory( icons )
 
-include_directories( 
+include_directories(
 ${KOPETE_INCLUDE_DIR}
-${KOPETE_INCLUDE_DIR}/ui 
+${KOPETE_INCLUDE_DIR}/ui
 ${CMAKE_CURRENT_SOURCE_DIR}/ui/
 ${QJSON_INCLUDE_DIR}
 )
@@ -48,13 +48,13 @@ set(facebook_SRCS
    facebook/chatmessage.cpp
 )
 
-set(kopete_facebook_PART_SRCS 
-   facebookprotocol.cpp 
-   facebookcontact.cpp 
-   facebookaccount.cpp 
-   facebookchatsession.cpp 
-   facebookaddcontactpage.cpp 
-   facebookeditaccountwidget.cpp 
+set(kopete_facebook_PART_SRCS
+   facebookprotocol.cpp
+   facebookcontact.cpp
+   facebookaccount.cpp
+   facebookchatsession.cpp
+   facebookaddcontactpage.cpp
+   facebookeditaccountwidget.cpp
    ${facebook_SRCS}
 )
 
