@@ -13,11 +13,22 @@ if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 
   include (KDE4Defaults)
   include (MacroLibrary)
-  find_path(KOPETE_INCLUDES NAMES kopeteversion.h PATHS ${CMAKE_INSTALL_PREFIX}/include/kopete)
-  if(NOT ${KOPETE_INCLUDES})
-    MESSAGE(FATAL "kopete headers not found")
-  endif(NOT ${KOPETE_INCLUDES})
 
+  find_path(KOPETE_INCLUDE_DIR
+    NAME kopeteversion.h
+    PATH_SUFFIXES kopete
+    HINTS
+    ${INCLUDE_INSTALL_DIR}
+    ${KDE4_INCLUDE_DIR}
+  )
+
+  if(KOPETE_INCLUDE_DIR)
+    MESSAGE("Found Kopete: includes - ${KOPETE_INCLUDE_DIR}")
+  else(KOPETE_INCLUDE_DIR)
+    MESSAGE(FATAL_ERROR "Kopete headers not found")
+  endif(KOPETE_INCLUDE_DIR)
+
+  mark_as_advanced(KOPETE_INCLUDE_DIR)
 endif(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
 
 find_package(QJson REQUIRED)
@@ -25,9 +36,9 @@ find_package(QJson REQUIRED)
 add_subdirectory( icons )
 
 include_directories( 
-${KOPETE_INCLUDES}
-${KOPETE_INCLUDES}/ui 
-${CMAKE_CURRENT_SOURCE_DIR}/ui/ 
+${KOPETE_INCLUDE_DIR}
+${KOPETE_INCLUDE_DIR}/ui 
+${CMAKE_CURRENT_SOURCE_DIR}/ui/
 ${QJSON_INCLUDE_DIR}
 )
 
