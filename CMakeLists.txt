@@ -1,6 +1,7 @@
 # to compile the plugin out of
 # kopete source tree
-if(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
+if(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+  set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
   find_package(KDE4 REQUIRED)
   find_package(Qt4 REQUIRED)
   INCLUDE_DIRECTORIES(${QT4_INCLUDE_DIR})
@@ -12,23 +13,33 @@ if(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
 
   include (KDE4Defaults)
   include (MacroLibrary)
-  find_path(KOPETE_INCLUDES NAMES kopeteversion.h PATHS ${CMAKE_INSTALL_PREFIX}/include/kopete)
-  if(NOT ${KOPETE_INCLUDES})
-    MESSAGE(FATAL "kopete headers not found")
-  endif(NOT ${KOPETE_INCLUDES})
 
-  find_path(QJSON_INCLUDES NAMES jason_driver.hh PATHS ${CMAKE_INSTALL_PREFIX}/include/qjson)
-  if(NOT ${QJSON_INCLUDES})
-    MESSAGE(FATAL "qjson headers not found")
-  endif(NOT ${QJSON_INCLUDES})
-endif(DEFINED KOPETE_FACEBOOK_OUTOFTREE)
+  find_path(KOPETE_INCLUDE_DIR
+    NAME kopeteversion.h
+    PATH_SUFFIXES kopete
+    HINTS
+    ${INCLUDE_INSTALL_DIR}
+    ${KDE4_INCLUDE_DIR}
+  )
+
+  if(KOPETE_INCLUDE_DIR)
+    MESSAGE("Found Kopete: includes - ${KOPETE_INCLUDE_DIR}")
+  else(KOPETE_INCLUDE_DIR)
+    MESSAGE(FATAL_ERROR "Kopete headers not found")
+  endif(KOPETE_INCLUDE_DIR)
+
+  mark_as_advanced(KOPETE_INCLUDE_DIR)
+endif(CMAKE_SOURCE_DIR STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+
+find_package(QJson REQUIRED)
 
 add_subdirectory( icons )
 
-include_directories( 
-${KOPETE_INCLUDES}
-${KOPETE_INCLUDES}/ui 
-${CMAKE_CURRENT_SOURCE_DIR}/ui/ 
+include_directories(
+${KOPETE_INCLUDE_DIR}
+${KOPETE_INCLUDE_DIR}/ui
+${CMAKE_CURRENT_SOURCE_DIR}/ui/
+${QJSON_INCLUDE_DIR}
 )
 
 set(facebook_SRCS
@@ -37,13 +48,13 @@ set(facebook_SRCS
    facebook/chatmessage.cpp
 )
 
-set(kopete_facebook_PART_SRCS 
-   facebookprotocol.cpp 
-   facebookcontact.cpp 
-   facebookaccount.cpp 
-   facebookchatsession.cpp 
-   facebookaddcontactpage.cpp 
-   facebookeditaccountwidget.cpp 
+set(kopete_facebook_PART_SRCS
+   facebookprotocol.cpp
+   facebookcontact.cpp
+   facebookaccount.cpp
+   facebookchatsession.cpp
+   facebookaddcontactpage.cpp
+   facebookeditaccountwidget.cpp
    ${facebook_SRCS}
 )
 
@@ -59,12 +70,12 @@ kde4_add_plugin(kopete_facebook ${kopete_facebook_PART_SRCS})
 
 #QT4_AUTOMOC(${facebook_SRCS})
 kde4_add_executable(facebooktest test.cpp ${facebook_SRCS})
-target_link_libraries(facebooktest kopete qjson)
+target_link_libraries(facebooktest kopete ${QJSON_LIBRARIES})
 
 if(WIN32)
-  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete qjson)
+  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete ${QJSON_LIBRARIES})
 else(WIN32)
-  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete kopete_videodevice qjson)
+  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete kopete_videodevice ${QJSON_LIBRARIES})
 endif(WIN32)
 
 install(TARGETS kopete_facebook  DESTINATION ${PLUGIN_INSTALL_DIR})
