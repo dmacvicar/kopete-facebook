@@ -170,7 +170,6 @@ protected slots:
      * something bad happened
      */
     void slotError( Facebook::ChatService::ErrorType error, const QString &desc );
-
 };
 
 #endif

@@ -179,17 +179,12 @@ void  FacebookAccount::slotLogoutFromServiceError()
 
 void FacebookAccount::disconnect()
 {
-	kDebug ( FBDBG ) ;
+    kDebug ( FBDBG ) ;
+    if ( m_service->isLoggedIn() )
+    {                
         m_service->setVisibility(false);
         m_service->logoutFromService();
-
-        // set all contacts to offline
-        QHashIterator<QString, Kopete::Contact*>itr( contacts() );
-        for ( ; itr.hasNext(); ) {
-                itr.next();
-                itr.value()->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
-        }
-     
+    }            
 }
 
 Facebook::ChatService * FacebookAccount::service()
@@ -221,10 +216,8 @@ void FacebookAccount::slotGoOffline ()
 {
 	kDebug ( FBDBG ) ;
 
-        m_service->setVisibility(false);
-
 	if (isConnected ())
-		disconnect ();
+            disconnect ();
 }
 
 void FacebookAccount::slotMessageAckAvailable( const ChatMessage &message )

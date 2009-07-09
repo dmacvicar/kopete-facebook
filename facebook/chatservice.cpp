@@ -38,6 +38,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkCookieJar>
+#include <QtNetwork/QNetworkDiskCache>
 
 #include "qjson/json_driver.hh"
 
@@ -123,6 +124,9 @@ ChatService::ChatService( QObject *parent )
     , _message_poll_timer(new QTimer(this))
     , _buddylist_poll_timer(new QTimer(this))
 {
+    // set a cache for the network access
+    _network->setCache(new QNetworkDiskCache());
+    
     QObject::connect(_network, SIGNAL(sslErrors( QNetworkReply *, const QList<QSslError> &)), this, SLOT(slotSslErrors( QNetworkReply *, const QList<QSslError> & )));
 
     // timer for the buddylist, but we dont start it until we get the form_id
@@ -163,6 +167,16 @@ void ChatService::loginToService()
 
 void ChatService::disconnect()
 {
+    // signals all users offline
+    foreach (QString userId, _availableBuddies.keys() )
+    {
+        _availableBuddies.remove(userId);                
+        if ( _buddyInfos.contains(userId) )
+            emit buddyNotAvailable(_buddyInfos.value(userId));
+        else
+            qDebug() << "no info for buddy " << userId;
+    }
+    
     // clear cookies
     _network->setCookieJar(new QNetworkCookieJar());
     _loggedin = false;
@@ -173,8 +187,11 @@ void ChatService::disconnect()
 
 void ChatService::logoutFromService()
 {
-    disconnect();    
-    emit logoutFromServiceFinished();
+    if ( _loggedin )
+    {        
+        disconnect();    
+        emit logoutFromServiceFinished();
+    }
 }
   
 bool ChatService::isLoggedIn() const
