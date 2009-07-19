@@ -1,0 +1,8 @@
+
+Compile:
+========
+
+cmake -DCMAKE_BUILD_TYPE=DebugFull -DCMAKE_INSTALL_PREFIX=/usr ..
+
+
+
