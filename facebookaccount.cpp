@@ -284,6 +284,8 @@ void  FacebookAccount::slotBuddyAvailable( const Facebook::BuddyInfo &buddy, boo
 	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
         return;
     }
+    
+    if ( idle )
     contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
 }
 
@@ -308,6 +310,14 @@ void  FacebookAccount::slotBuddyInformation( const Facebook::BuddyInfo &buddy )
 	addContact(buddy.buddyId(), buddy.name().isEmpty() ? buddy.buddyId() : buddy.name() , g, Kopete::Account::ChangeKABC);
         contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
     }
+
+    // set status message
+    if ( ! buddy.status().isEmpty() )
+        contact( buddy.buddyId() )->setStatusMessage(buddy.status());
+    // set name
+    if ( ! buddy.name().isEmpty() )
+        contact( buddy.buddyId() )->setNickName(buddy.name());
+
     m_service->requestPicture(buddy.buddyId());
 }
 

@@ -58,7 +58,7 @@ public:
   /**
    * Return the actions for this contact
    */
-  virtual QList<KAction *> *customContextMenuActions();
+  virtual QList<KAction *> *customContextMenuActions(Kopete::ChatSession*);
   /**
    * Returns a Kopete::ChatSession associated with this contact
    */
@@ -83,11 +83,18 @@ public slots:
 
   void setDisplayPicture( const QImage &image );
   
-  protected slots:
+protected slots:
+
   /**
-   * Show the settings dialog
+   * Show the user info dialog
    */
-  void showContactSettings();
+  void slotUserInfo();
+
+  /**
+   * opens the user profile in a browser
+   */
+  void slotShowProfile();
+
   /**
    * Notify the contact that its current Kopete::ChatSession was
    * destroyed - probably by the chatwindow being closed
@@ -97,8 +104,10 @@ public slots:
 protected:
   Kopete::ChatSession* m_msgManager;
   KActionCollection* m_actionCollection;
+
   Type m_type;
   KAction* m_actionPrefs;
+  KAction* m_actionShowProfile;
 };
 
 #endif

@@ -59,11 +59,9 @@ set(kopete_facebook_PART_SRCS
 )
 
 kde4_add_ui_files(kopete_facebook_PART_SRCS
-  facebookaddui.ui
-)
-
-kde4_add_ui_files(kopete_facebook_PART_SRCS
-  facebookaccountpreferences.ui
+  ui/facebookinfo.ui
+  ui/facebookadd.ui
+  ui/facebookaccountpreferences.ui
 )
 
 kde4_add_plugin(kopete_facebook ${kopete_facebook_PART_SRCS})

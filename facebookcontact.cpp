@@ -19,9 +19,11 @@
 
 #include <QList>
 
-#include <kaction.h>
-#include <kdebug.h>
-#include <klocale.h>
+#include <KToolInvocation>
+#include <KDialog>
+#include <KAction>
+#include <KDebug>
+#include <KLocale>
 
 #include "kopeteavatarmanager.h"
 #include "kopeteaccount.h"
@@ -33,9 +35,12 @@
 #include "facebookprotocol.h"
 #include "facebookchatsession.h"
 
+#include "ui_facebookinfo.h"
+
 FacebookContact::FacebookContact( Kopete::Account* _account, const QString &uniqueName,
 				  const QString &displayName, Kopete::MetaContact *parent )
     : Kopete::Contact( _account, uniqueName, parent )
+    , m_actionShowProfile(0L)
 {
     kDebug( FBDBG ) << " uniqueName: " << uniqueName << ", displayName: " << displayName;
     m_type = FacebookContact::Null;
@@ -43,6 +48,9 @@ FacebookContact::FacebookContact( Kopete::Account* _account, const QString &uniq
     m_msgManager = 0L;
     
     setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
+
+    m_actionShowProfile = new KAction(i18n("Show Profile"), this);
+    QObject::connect(m_actionShowProfile, SIGNAL(triggered(bool)), this, SLOT(slotShowProfile()));
 
 }
 
@@ -97,21 +105,12 @@ Kopete::ChatSession* FacebookContact::manager( CanCreateFlags canCreateFlags )
     return m_msgManager;
 }
 
-QList<KAction *> *FacebookContact::customContextMenuActions() //OBSOLETE
+QList<KAction *> *FacebookContact::customContextMenuActions(Kopete::ChatSession*)
 {
     //FIXME!!!  this function is obsolete, we should use XMLGUI instead
-    /*m_actionCollection = new KActionCollection( this, "userColl" );
-      m_actionPrefs = new KAction(i18n( "&Contact Settings" ), 0, this,
-      SLOT( showContactSettings( )), m_actionCollection, "contactSettings" );
-      
-      return m_actionCollection;*/
-    return 0L;
-}
-
-void FacebookContact::showContactSettings()
-{
-    //FacebookContactSettings* p = new FacebookContactSettings( this );
-    //p->show();
+    QList<KAction*> *actions = new QList<KAction*>();
+    actions->append(m_actionShowProfile);
+    return actions;
 }
 
 void FacebookContact::sendMessage( Kopete::Message &message )
@@ -153,6 +152,28 @@ void FacebookContact::setDisplayPicture( const QImage &image )
     removeProperty (Kopete::Global::Properties::self()->photo ());
     setProperty (Kopete::Global::Properties::self()->photo (), image);
     //emit displayPictureChanged();
+}
+
+void
+FacebookContact::slotShowProfile()
+{
+    KToolInvocation::invokeBrowser(QString::fromLatin1("http://www.facebook.com/profile.php?id=") + contactId()) ;
+}
+
+void FacebookContact::slotUserInfo()
+{
+    KDialog infoDialog;
+    infoDialog.setButtons( KDialog::Close);
+    infoDialog.setDefaultButton(KDialog::Close);
+    Ui::FacebookInfo info;
+    info.setupUi(infoDialog.mainWidget());
+    info.m_displayName->setText(nickName());
+    info.m_personalMessage->setPlainText(statusMessage().message());
+    QVariant picture(property(Kopete::Global::Properties::self()->photo()).value());    
+    info.m_photo->setPixmap(picture.value<QPixmap>());    
+
+    infoDialog.setCaption(nickName());
+    infoDialog.exec();
 }
 
 #include "facebookcontact.moc"

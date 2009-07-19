@@ -112,6 +112,6 @@ void BuddyInfo::setThumbSrc( const QString &thumbSrc )
 
 QDebug operator<<(QDebug dbg, const Facebook::BuddyInfo &info)
 {
-    dbg.nospace() << info.buddyId() << " : " << info.name();
+    dbg.nospace() << info.buddyId() << " : " << info.name() << " ( " << info.status() << " )";
     return dbg.space();
 }
