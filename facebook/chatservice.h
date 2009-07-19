@@ -350,6 +350,9 @@ private:
   QTimer *_buddylist_poll_timer;
 
   QMap<QString, BuddyInfo> _buddyInfos;
+  // available users id are present in this map.
+  // if they are present, the map associates whether
+  // they are idle or not
   QMap<QString, bool> _availableBuddies;
   QMap<QString, ChatMessage> _messageQueue;
 };
