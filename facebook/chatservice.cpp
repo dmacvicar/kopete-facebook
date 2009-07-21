@@ -40,7 +40,7 @@
 #include <QtNetwork/QNetworkCookieJar>
 #include <QtNetwork/QNetworkDiskCache>
 
-#include <qjson/json_driver.hh>
+#include <qjson/parser.h>
 
 #include "facebook/chatservice.h"
 #include "facebook/chatmessage.h"
@@ -614,10 +614,10 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     input->read(QString("for (;;);").count());
     QString json = input->readAll();
     
-    JSonDriver parser;
+    QJson::Parser parser;
     
     bool status = true;
-    QVariant result = parser.parse(json, &status);
+    QVariant result = parser.parse(json.toAscii(), &status);
     
     qDebug() << json;
 
@@ -757,7 +757,7 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     }
     else
     {
-        qDebug() << "invalid reply: " << parser.error();
+        qDebug() << "invalid reply: " << parser.errorString();
         qDebug() << json;
         
     }
@@ -793,9 +793,9 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     responseInput->read(QString("for (;;);").count());
     QString json = responseInput->readAll();
 
-    JSonDriver parser;    
+    QJson::Parser parser;    
     bool status = true;
-    QVariant result = parser.parse(json, &status);
+    QVariant result = parser.parse(json.toAscii(), &status);
     
     if (!status)
     {
