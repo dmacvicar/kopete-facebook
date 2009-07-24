@@ -125,7 +125,7 @@ ChatService::ChatService( QObject *parent )
     , _buddylist_poll_timer(new QTimer(this))
 {
     // set a cache for the network access
-    _network->setCache(new QNetworkDiskCache());
+    //_network->setCache(new QNetworkDiskCache().update);
     
     QObject::connect(_network, SIGNAL(sslErrors( QNetworkReply *, const QList<QSslError> &)), this, SLOT(slotSslErrors( QNetworkReply *, const QList<QSslError> & )));
 
@@ -553,7 +553,7 @@ void ChatService::slotMessageSendRequestFinished()
     _messageQueue.remove(messageid);
 }
 
-void ChatService::slotMessageSendRequestError(QNetworkReply::NetworkError code)
+void ChatService::slotMessageSendRequestError(QNetworkReply::NetworkError)
 {
     qDebug() << "request finished with error , message not sent, emmiting error";
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
@@ -777,7 +777,6 @@ void ChatService::slotMessageAckRequestError(QNetworkReply::NetworkError code)
 void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
 {
     bool error = false;
-    bool errorIsWarning = false;
     QString errorSummary;
     QString errorDesc;
     bool listChanged = true;
@@ -791,14 +790,14 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     // that to the json parser, but if facebook changes
     // the format we will have hard time figuring out
     responseInput->read(QString("for (;;);").count());
-    QString json = responseInput->readAll();
 
     QJson::Parser parser;    
-    bool status = true;
-    QVariant result = parser.parse(json.toAscii(), &status);
+    bool ok = true;
+    QVariant result = QJson::Parser().parse(responseInput, &ok);
     
-    if (!status)
+    if (ok)
     {
+	// No errors occured
         // the whole reply is a map
         if ( ! result.canConvert(QVariant::Map) )
         {
@@ -811,7 +810,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
         
         QVariantMap payload = result.toMap()["payload"].toMap();
         QVariantMap buddy_list = payload["buddy_list"].toMap();
-        listChanged = buddy_list["listChanged"].toBool();
+        listChanged = true; //buddy_list["listChanged"].toBool();
         int availableCount = buddy_list["availableCount"].toInt();
         QVariantMap userInfos = buddy_list["userInfos"].toMap();
 
@@ -860,12 +859,21 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
             {
                 // if the user id is already there with the same idle status, don't emit
                 // anything
+		    qDebug() << "Checking " << userId;
                 if ( _availableBuddies.contains(userId) && 
                      ( _availableBuddies.value(userId) == idle ) )
                     continue;
 
-                _availableBuddies[userId] = idle;                
-                emit buddyAvailable(_buddyInfos.value(userId), _availableBuddies[userId]);
+		bool firstTime = !_availableBuddies.contains(userId);
+
+		qDebug() << "Status changed to " << idle;
+                _availableBuddies[userId] = idle;
+		/* On first appearing, a buddy should be assumed to be
+		   online.  (otherwise he's not added to the list;
+		   code wasn't well thought-out) */
+		if (firstTime)
+			emit buddyAvailable(_buddyInfos.value(userId), true);
+                emit buddyAvailable(_buddyInfos.value(userId), idle);
             }           
             else
             {                
@@ -926,7 +934,7 @@ void ChatService::slotRetrievePictureRequestFinished()
     emit buddyThumbAvailable(buddyid, image);
 }
 
-void ChatService::slotRetrievePictureRequestError(QNetworkReply::NetworkError code)
+void ChatService::slotRetrievePictureRequestError(QNetworkReply::NetworkError)
 {
     qDebug() << "error retrieving picture";
 }

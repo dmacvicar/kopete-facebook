@@ -331,7 +331,7 @@ signals:
   /**
    * emitted when something bad happens
    */
-  void error( ErrorType error, const QString &description );
+  void error( int error, const QString &description );
 
 private:
   QNetworkAccessManager *_network;
