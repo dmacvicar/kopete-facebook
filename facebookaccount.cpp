@@ -156,7 +156,6 @@ void FacebookAccount::slotLoginToServiceFinished()
     QObject::connect(m_service, SIGNAL(messageSendError(const ChatMessage &)), this, SLOT(slotMessageErrorAvailable(const ChatMessage &)));
     QObject::connect(m_service, SIGNAL(buddyThumbAvailable( const QString &, const QImage & )), this, SLOT(slotBuddyThumbAvailable( const QString &, const QImage & )));
     QObject::connect(m_service, SIGNAL(typingEventAvailable(const QString &, const QString &)), this, SLOT(slotTypingEventAvailable(const QString &, const QString &)));
-    //FIXME The following signal is disconnected.
     QObject::connect(m_service, SIGNAL(error( int, const QString &)), this, SLOT(slotError(int, const QString &)));
 }
     
