@@ -19,7 +19,7 @@
 #define FACEBOOKADDCONTACTPAGE_H
 
 #include <addcontactpage.h>
-#include "ui_facebookaddui.h"
+#include "ui_facebookadd.h"
 
 namespace Kopete { class Account; }
 namespace Kopete { class MetaContact; }
