@@ -34,6 +34,7 @@
 #include <QStringList>
 #include <QString>
 
+#include <QDesktopServices>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -124,8 +125,12 @@ ChatService::ChatService( QObject *parent )
     , _message_poll_timer(new QTimer(this))
     , _buddylist_poll_timer(new QTimer(this))
 {
-    // set a cache for the network access
-    //_network->setCache(new QNetworkDiskCache().update);
+    // set a cache for the network access, which should make
+    // downloading pictures cheaper
+    QNetworkDiskCache *diskCache = new QNetworkDiskCache(this);
+    QString location = QDesktopServices::storageLocation(QDesktopServices::CacheLocation);
+    diskCache->setCacheDirectory(location);
+    _network->setCache(diskCache);
     
     QObject::connect(_network, SIGNAL(sslErrors( QNetworkReply *, const QList<QSslError> &)), this, SLOT(slotSslErrors( QNetworkReply *, const QList<QSslError> & )));
 
@@ -139,7 +144,8 @@ ChatService::ChatService( QObject *parent )
 
 ChatService::~ChatService()
 {
-
+    _message_poll_timer->stop();
+    _buddylist_poll_timer->stop();
 }
 
 QString ChatService::userId() const

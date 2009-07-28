@@ -46,11 +46,12 @@ FacebookAccount::FacebookAccount( FacebookProtocol *parent, const QString& accou
 {
     setMyself( new FacebookContact( this, accountId(), accountId(), Kopete::ContactList::self()->myself() ) );
     myself()->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
+
+    m_service = new Facebook::ChatService(this);
 }
 
 FacebookAccount::~FacebookAccount()
 {
-	delete m_service;
 }
 
 FacebookContact * FacebookAccount::contact( const QString &id )
@@ -84,10 +85,10 @@ bool FacebookAccount::createContact(const QString& contactId, Kopete::MetaContac
 
 void FacebookAccount::setAway( bool away, const QString & /* reason */ )
 {
-	if ( away )
-		slotGoAway();
-	else
-		slotGoOnline();
+    if ( away )
+        slotGoAway();
+    else
+        slotGoOnline();
 }
 
 void FacebookAccount::setOnlineStatus(const Kopete::OnlineStatus& status, const Kopete::StatusMessage &reason, const OnlineStatusOptions& options)
@@ -128,8 +129,6 @@ void FacebookAccount::connectWithPassword (const QString & pass)
 
     QString login = accountId();
     QString pass1 = pass;
-
-    m_service = new Facebook::ChatService(this);
 
     m_service->setLoginInformation(login, pass1);
 
