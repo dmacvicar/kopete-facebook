@@ -52,6 +52,7 @@ FacebookAccount::FacebookAccount( FacebookProtocol *parent, const QString& accou
 
 FacebookAccount::~FacebookAccount()
 {
+        qDebug() << "destructing FacebookAccount";
 }
 
 FacebookContact * FacebookAccount::contact( const QString &id )

@@ -139,6 +139,15 @@ protected slots:
   void startUpdateStatusRequest(const QString &status);
 
   /**
+   * Initiate a reconnect request
+
+   * Note how I don't say what a reconnect request is or what it's
+   * used for.  Hell, the usefulness of the function descriptions here
+   * is on par with: i++; // increment i
+   */
+  void startReconnectRequest(int reason);
+
+  /**
    * Initiates a message send request
    */
   void startMessageSendRequest( const ChatMessage &message );
@@ -199,6 +208,17 @@ protected slots:
    * when it has failed
    */
   void slotUpdateVisibilityRequestError(QNetworkReply::NetworkError code);
+
+/**
+   * Handles the response from the page request to reconnect when it
+   * is finished
+   */
+  void slotReconnectRequestFinished();
+  /**
+   * Handles the response from the page request to reconnect when it
+   * has failed
+   */
+  void slotReconnectRequestError(QNetworkReply::NetworkError code);
 
   /**
    * Handles the response from the page request to update status
@@ -343,6 +363,7 @@ private:
   QString _password;
   QString _form_id;
   QString _channel;
+  bool _visible;
 
   int _seq;
 

@@ -16,12 +16,14 @@
 */
 
 // Useful resources when implementing the Facebook chat protocol
-// 
+//
 // http://code.google.com/p/pidgin-facebookchat/source/browse/trunk
 // http://coderrr.wordpress.com/2008/05/06/facebook-chat-api/
 // http://snipplr.com/view/6246/facebook-chat/
-// http://imfreedom.org/wiki/Facebook
 // https://www.limewire.org/fisheye/browse/limecvs/components/facebook/src/main/java/org/limewire/facebook/service/ChatClient.java?r=facebook-branch-2
+//
+// The following is useful but partially outdated
+// http://imfreedom.org/wiki/Facebook
 
 #include <QObject>
 #include <QDebug>
@@ -50,6 +52,34 @@
 namespace Facebook
 {
 
+/*
+  TODO:
+    * find out what buddy_list.php is used for
+      - is update.php still necessary (FB still uses it)
+    * find out what reconnect.php is used for
+      - maybe it's the second step of FB visibility updating
+ */
+
+/*
+  When CONNECTing
+    1. settings.php is used to set visibility=true
+    2. update.php is POSTed and the following are returned:
+       - buddy info on own account
+       - buddy info on other online accounts
+       - other things
+    3. reconnect.php is POSTed
+       - I'm guessing post_form_id and reason are the only two important params
+       - afaict reason=3 means page reloaded
+         (doesn't mark you as online if used initially)
+       - afaict reason=5 means used ``Go offline'' and now I've come back
+         (doesn't mark you as online if used initially)
+       - afaict reason=6 means just logged in
+         (doesn't mark you as online if used initially)
+    _. buddy_list.php is POSTed
+       - sometimes this returns the buddy infos just for me
+       - sometimes for others as well
+ */
+
 #define FACEBOOK_URL "http://www.facebook.com"
 #define FACEBOOK_LOGIN_URL "https://login.facebook.com/login.php"
 #define FACEBOOK_BUDDYLIST_URL "http://apps.facebook.com/ajax/presence/update.php"
@@ -58,6 +88,7 @@ namespace Facebook
 #define FACEBOOK_STATUS_URL "http://www.facebook.com/updatestatus.php"
 #define FACEBOOK_MESSAGE_URL "http://www.facebook.com/ajax/chat/send.php"
 #define FACEBOOK_ACK_MESSAGE_URL "http://www.facebook.com/ajax/chat/settings.php?_ecdc=false"
+#define FACEBOOK_RECONNECT_URL "http://www.facebook.com/ajax/presence/reconnect.php"
 
 // only wait one second as the rest is done by the comet style connection
 #define FACEBOOK_MESSAGE_POLL_INTERVAL 1000
@@ -76,13 +107,13 @@ static QString encodePostParams( QMap<QString, QString> params )
     while (i.hasNext())
     {
         i.next();
-        
+
         QStringList bothParams;
         bothParams << i.key();
         bothParams << QUrl::toPercentEncoding(i.value().toAscii());
         paramList << bothParams.join("=");
     }
-    
+
     data = paramList.join("&");
     return data;
     //return QString("Content-Type: application/x-www-form-urlencoded\nContent-Length: %1\n\n%2\n").arg(data.length()).arg(data);
@@ -131,7 +162,7 @@ ChatService::ChatService( QObject *parent )
     QString location = QDesktopServices::storageLocation(QDesktopServices::CacheLocation);
     diskCache->setCacheDirectory(location);
     _network->setCache(diskCache);
-    
+
     QObject::connect(_network, SIGNAL(sslErrors( QNetworkReply *, const QList<QSslError> &)), this, SLOT(slotSslErrors( QNetworkReply *, const QList<QSslError> & )));
 
     // timer for the buddylist, but we dont start it until we get the form_id
@@ -150,7 +181,7 @@ ChatService::~ChatService()
 
 QString ChatService::userId() const
 {
-    return _user_id;    
+    return _user_id;
 }
 
 void ChatService::setLoginInformation( const QString &login, const QString &pass )
@@ -176,13 +207,13 @@ void ChatService::disconnect()
     // signals all users offline
     foreach (QString userId, _availableBuddies.keys() )
     {
-        _availableBuddies.remove(userId);                
+        _availableBuddies.remove(userId);
         if ( _buddyInfos.contains(userId) )
             emit buddyNotAvailable(_buddyInfos.value(userId));
         else
             qDebug() << "no info for buddy " << userId;
     }
-    
+
     // clear cookies
     _network->setCookieJar(new QNetworkCookieJar());
     _loggedin = false;
@@ -194,12 +225,12 @@ void ChatService::disconnect()
 void ChatService::logoutFromService()
 {
     if ( _loggedin )
-    {        
-        disconnect();    
+    {
+        disconnect();
         emit logoutFromServiceFinished();
     }
 }
-  
+
 bool ChatService::isLoggedIn() const
 {
     return _loggedin;
@@ -227,10 +258,10 @@ void ChatService::sendMessage(const ChatMessage &message )
 void ChatService::startLoginRequest()
 {
     _buddylist_poll_timer->stop();
-    
+
     qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).count() << " cookies";
     QList<QNetworkCookie> cookies;
-    
+
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_LOGIN_URL);
 
@@ -268,7 +299,7 @@ void ChatService::startLoginRequest()
 
     QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotLoginRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotLoginRequestError(QNetworkReply::NetworkError)));
 }
@@ -294,9 +325,9 @@ void ChatService::slotLoginRequestFinished()
         cookies << QNetworkCookie::parseCookies(rawcookie.toAscii());
     }
     qDebug() << "Received " << cookies.count() << " cookies";
-    
+
     _network->cookieJar()->setCookiesFromUrl(cookies, QUrl(FACEBOOK_URL));
-        
+
 
     QListIterator<QByteArray> header_it(reply->rawHeaderList());
     while (header_it.hasNext())
@@ -313,21 +344,21 @@ void ChatService::slotLoginRequestFinished()
         if (cookie.name() == "c_user")
             _user_id = cookie.value();
     }
-    
+
     if ( _user_id.isEmpty() )
-    {        
+    {
         qDebug() << "No user set";
         _loggedin = false;
         emit loginToServiceError();
         return;
-    }    
+    }
     else
         qDebug() << "c_user: " << _user_id;
 
     qDebug() << _network->cookieJar()->cookiesForUrl(QUrl(FACEBOOK_URL)).count() << " cookies";
 
     // queue the job to grab the form_id
-    QTimer::singleShot(0, this, SLOT(startRetrievePageRequest())); 
+    QTimer::singleShot(0, this, SLOT(startRetrievePageRequest()));
 }
 
 void ChatService::slotLoginRequestError(QNetworkReply::NetworkError code)
@@ -340,21 +371,21 @@ void ChatService::startRetrieveBuddyListRequest()
 {
     // avoids two request in parallel
     _buddylist_poll_timer->stop();
-   
+
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_BUDDYLIST_URL);
     params.insert("user", _user_id);
-    params.insert("notifications", "1");
+    //params.insert("notifications", "1"); // Facebook doesn't use this
     params.insert("popped_out", "false");
     params.insert("force_render", "true");
     params.insert("buddy_list", "1");
 
     QString data = encodePostParams(params);
     qDebug() << data;
-    
+
     QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotRetrieveBuddyListRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotRetrieveBuddyListRequestError(QNetworkReply::NetworkError)));
 }
@@ -383,10 +414,10 @@ void ChatService::startRetrievePageRequest()
 {
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_PAGE_URL);
-    
+
     QNetworkReply *reply = _network->get(QNetworkRequest(url));
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotRetrievePageRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotRetrievePageRequestError(QNetworkReply::NetworkError)));
 }
@@ -394,26 +425,26 @@ void ChatService::startRetrievePageRequest()
 void ChatService::slotRetrievePageRequestFinished()
 {
     qDebug() << "got facebook page, looking for form_id";
-    
+
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
     if ( !reply )
         return;
 
     QString page(reply->readAll());
-    
+
     _form_id = scrapValue(page, "id=\"post_form_id\" name=\"post_form_id\" value=\"");
-    
+
     if ( _form_id.isEmpty() )
     {
         qDebug() << "Could not find form_id" << _form_id;
         return;
     }
-    
+
     qDebug() << "Found form_id: " << _form_id;
 
     qDebug() << "looking for channel id";
     _channel = scrapValue(page, "\", \"channel");
-    
+
     if ( _form_id.isEmpty() )
     {
         qDebug() << "Could not find form_id" << _form_id;
@@ -451,12 +482,13 @@ void ChatService::slotSslErrors( QNetworkReply * reply, const QList<QSslError> &
 {
     Q_UNUSED(reply);
     Q_UNUSED(errors);
-    
+
     qDebug() << "ssl error";
 }
 
 void ChatService::startUpdateVisibilityRequest(bool visible)
 {
+    _visible = visible;
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_VISIBILITY_URL);
     // visibility=true&post_form_id=1234
@@ -464,9 +496,10 @@ void ChatService::startUpdateVisibilityRequest(bool visible)
     params.insert("post_form_id", _form_id );
 
     QString data = encodePostParams(params);
+    qDebug() << data;
     QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotUpdateVisibilityRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotUpdateVisibilityRequestError(QNetworkReply::NetworkError)));
 }
@@ -474,6 +507,10 @@ void ChatService::startUpdateVisibilityRequest(bool visible)
 void ChatService::slotUpdateVisibilityRequestFinished()
 {
     qDebug() << "visibility updated";
+    if (_visible) {
+            qDebug() << "reconnecting...";
+            startReconnectRequest(3);
+    }
 }
 
 void ChatService::slotUpdateVisibilityRequestError(QNetworkReply::NetworkError code)
@@ -481,18 +518,43 @@ void ChatService::slotUpdateVisibilityRequestError(QNetworkReply::NetworkError c
     qDebug() << "error on when setting visibility" << code;
 }
 
+void ChatService::startReconnectRequest(int reason) {
+            QMap<QString, QString> params;
+            QUrl url(FACEBOOK_RECONNECT_URL);
+            // reason=6&post_form_id=1234
+            params.insert("reason", QString("%1").arg(reason).toStdString().c_str());
+            params.insert("post_form_id", _form_id);
+
+            QString data = encodePostParams(params);
+            qDebug() << data;
+            QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
+            reply->setParent(this);
+
+            QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotReconnectRequestFinished()));
+            QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotReconnectRequestError(QNetworkReply::NetworkError)));
+}
+
+void ChatService::slotReconnectRequestFinished() {
+        qDebug() << "reconnect finished";
+}
+
+void ChatService::slotReconnectRequestError(QNetworkReply::NetworkError code) {
+        qDebug() << "error on when reconnecting" << code;
+}
+
 void ChatService::startUpdateStatusRequest(const QString &status)
 {
-    qDebug() << "starting update status request...";    
+    qDebug() << "starting update status request...";
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_STATUS_URL);
-    // visibility=true&post_form_id=1234
+    // status=<status>
     params.insert("status", status );
 
     QString data = encodePostParams(params);
+    qDebug() << data;
     QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotUpdateStatusRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotUpdateStatusRequestError(QNetworkReply::NetworkError)));
 }
@@ -524,7 +586,7 @@ void ChatService::startMessageSendRequest(const ChatMessage &message)
     params.insert("post_form_id", _form_id);
 
     _messageQueue[message.messageId()] = message;
-    
+
     QString data = encodePostParams(params);
 
     // pass the message id as an attribute
@@ -533,8 +595,8 @@ void ChatService::startMessageSendRequest(const ChatMessage &message)
 
     qDebug() << "startMessageSendRequest() posting to " << url;
     QNetworkReply *reply = _network->post(request, data.toAscii());
-    qDebug() << "startMessageSendRequest() going to set parent";    
-    reply->setParent(this);   
+    qDebug() << "startMessageSendRequest() going to set parent";
+    reply->setParent(this);
     qDebug() << "startMessageSendRequest() connecting signals";
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotMessageSendRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotMessageSendRequestError(QNetworkReply::NetworkError)));
@@ -554,7 +616,7 @@ void ChatService::slotMessageSendRequestFinished()
 
     if ( ! _messageQueue.contains(messageid) )
         return;
-    
+
     emit messageSendFinished(_messageQueue[messageid]);
     _messageQueue.remove(messageid);
 }
@@ -571,7 +633,7 @@ void ChatService::slotMessageSendRequestError(QNetworkReply::NetworkError)
 
     if ( ! _messageQueue.contains(messageid) )
         return;
-    
+
     emit messageSendError(_messageQueue[messageid]);
     _messageQueue.remove(messageid);
 
@@ -592,11 +654,11 @@ void ChatService::startGetMessagesRequest()
 
     QNetworkReply *reply = _network->get(QNetworkRequest(url));
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotGetMessagesRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotGetMessagesRequestError(QNetworkReply::NetworkError)));
 }
-    
+
 void ChatService::slotGetMessagesRequestFinished()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
@@ -619,12 +681,12 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     // read the useless for
     input->read(QString("for (;;);").count());
     QString json = input->readAll();
-    
+
     QJson::Parser parser;
-    
+
     bool status = true;
     QVariant result = parser.parse(json.toAscii(), &status);
-    
+
     qDebug() << json;
 
     if (!status)
@@ -640,9 +702,9 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
             qDebug() << "Server message reply is not a map";
             return;
         }
-        
+
         QString tValue = result.toMap()["t"].toString();
-        
+
         // in case we got a new seq,
         if ( tValue == "continue" )
         {
@@ -666,19 +728,19 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
             {
                 // our old seq was zero, and now it got reseted, to zero
                 // which may  be some problem.
-                qDebug() << "bad: old seq and new seq are 0";                
+                qDebug() << "bad: old seq and new seq are 0";
                 disconnect();
                 emit error(ErrorDisconnected, "");
-                return;                
+                return;
             }
             else
             {
                 // we had a normal seq, even zero, and it got resetted, this
                 // means we have to read the channel value and form_id again
-                qDebug() << "seq reset by server";                
+                qDebug() << "seq reset by server";
                 QTimer::singleShot(0, this, SLOT(startRetrievePageRequest()));
-                return;                
-            }                                
+                return;
+            }
         }
         else if ( tValue == "msg" )
         {
@@ -698,14 +760,14 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                         qDebug() << "Error decoding message item";
                         continue;
                     }
-                    
+
                     if ( ms.toMap()["type"].toString() == "typ" )
                     {
                         // typing event
                         ChatMessage message;
                         if ( message.readVariant(ms.toMap()) )
                         {
-                            qDebug() << "typing from: " << message.from() << " to " << message.to();                            
+                            qDebug() << "typing from: " << message.from() << " to " << message.to();
                             emit typingEventAvailable(message.from(), message.to());
                         }
                         else
@@ -727,7 +789,7 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                             // the ack only if the message is not set _to_ us
                             if ( message.from() != userId() )
                             {
-                                qDebug() << "sending ack for message from " << message.fromName();                                
+                                qDebug() << "sending ack for message from " << message.fromName();
                                 QMap<QString,QString> params;
                                 params.insert("focus_chat", message.from() );
                                 params.insert("windows_id", "12345" );                                                    params.insert("post_form_id", _form_id );
@@ -736,9 +798,9 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
                                 QNetworkReply *reply = _network->post(QNetworkRequest(ackurl), data.toAscii() );
                                 reply->setParent(this);
                                 QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotMessageAckRequestFinished()));
-                                QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotMessageAckRequestError(QNetworkReply::NetworkError)));                            
+                                QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotMessageAckRequestError(QNetworkReply::NetworkError)));
                             }
-                        }                        
+                        }
                         else
                         {
                             qDebug() << "Error decoding message";
@@ -751,13 +813,13 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
             {
                 // complain
             }
-            
-            
+
+
             qDebug() << "We got a message!!!";
             // process it
             _seq++;
         }
-    
+
         // setup next poll
         QTimer::singleShot(FACEBOOK_MESSAGE_POLL_INTERVAL, this, SLOT(startGetMessagesRequest()));
     }
@@ -765,13 +827,13 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     {
         qDebug() << "invalid reply: " << parser.errorString();
         qDebug() << json;
-        
+
     }
 }
 
 void ChatService::slotMessageAckRequestFinished()
 {
-    qDebug() << "message ack done";    
+    qDebug() << "message ack done";
 }
 
 
@@ -786,7 +848,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     QString errorSummary;
     QString errorDesc;
     bool listChanged = true;
-    
+
     // we could pass the input IO device
     // directly to the JSON reader but we need
     // first to strip the for{;;};" string
@@ -797,10 +859,10 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     // the format we will have hard time figuring out
     responseInput->read(QString("for (;;);").count());
 
-    QJson::Parser parser;    
+    QJson::Parser parser;
     bool ok = true;
     QVariant result = QJson::Parser().parse(responseInput, &ok);
-    
+
     if (ok)
     {
 	// No errors occured
@@ -813,7 +875,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
         error = result.toMap()["error"].toBool();
         errorSummary = result.toMap()["errorSummary"].toString();
         errorDesc = result.toMap()["errorDescription"].toString();
-        
+
         QVariantMap payload = result.toMap()["payload"].toMap();
         QVariantMap buddy_list = payload["buddy_list"].toMap();
         listChanged = true; //buddy_list["listChanged"].toBool();
@@ -821,12 +883,12 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
         QVariantMap userInfos = buddy_list["userInfos"].toMap();
 
         if ( ! listChanged )
-        {            
+        {
             qDebug() << "buddy list did not change. " << availableCount << " buddies available" ;
-            return;            
+            return;
         }
-        
-        
+
+
         foreach (QString userId, userInfos.keys())
         {
             BuddyInfo buddy;
@@ -836,7 +898,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
                 qDebug() << "invalid buddy";
                 qDebug() << buddy;
             }
-            qDebug() << "got buddy: " << buddy;            
+            qDebug() << "got buddy: " << buddy;
             _buddyInfos[userId] = buddy;
             emit buddyInformation(buddy);
         }
@@ -848,13 +910,13 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
         {
             if ( ! nowAvailableList.contains(userId) )
             {
-                _availableBuddies.remove(userId);                
+                _availableBuddies.remove(userId);
                 if ( _buddyInfos.contains(userId) )
                     emit buddyNotAvailable(_buddyInfos.value(userId));
                 else
                     qDebug() << "no info for buddy " << userId;
             }
-            
+
         }
 
         // update available contacts
@@ -866,7 +928,7 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
                 // if the user id is already there with the same idle status, don't emit
                 // anything
 		    qDebug() << "Checking " << userId;
-                if ( _availableBuddies.contains(userId) && 
+                if ( _availableBuddies.contains(userId) &&
                      ( _availableBuddies.value(userId) == idle ) )
                     continue;
 
@@ -880,12 +942,12 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
 		if (firstTime)
 			emit buddyAvailable(_buddyInfos.value(userId), true);
                 emit buddyAvailable(_buddyInfos.value(userId), idle);
-            }           
+            }
             else
-            {                
-                qDebug() << "no info for buddy " << userId;         
-            }            
-        }        
+            {
+                qDebug() << "no info for buddy " << userId;
+            }
+        }
     }
     else
     {
@@ -902,19 +964,19 @@ void ChatService::startRetrievePictureRequest( const QString &buddyid )
 {
     if ( ! _buddyInfos.contains(buddyid) )
         return;
-    
+
     QUrl url = QUrl(_buddyInfos.value(buddyid).thumbSrc());
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::User, buddyid);
-    
+
     qDebug() << "requesting photo for " << buddyid << " at " << url;
     QNetworkReply *reply = _network->get(request);
     reply->setParent(this);
-    
+
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotRetrievePictureRequestFinished()));
     QObject::connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(slotRetrievePictureRequestError(QNetworkReply::NetworkError)));
 }
-  
+
 void ChatService::slotRetrievePictureRequestFinished()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
@@ -929,7 +991,7 @@ void ChatService::slotRetrievePictureRequestFinished()
         qDebug() << "photo for unknown buddy";
         return;
     }
-    
+
     QImage image(QImage::fromData(reply->readAll()));
     if ( image.format() == QImage::Format_Invalid )
     {
@@ -946,4 +1008,4 @@ void ChatService::slotRetrievePictureRequestError(QNetworkReply::NetworkError)
 }
 
 } //ns
- 
+
