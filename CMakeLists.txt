@@ -68,7 +68,7 @@ kde4_add_plugin(kopete_facebook ${kopete_facebook_PART_SRCS})
 
 #QT4_AUTOMOC(${facebook_SRCS})
 kde4_add_executable(facebooktest test.cpp ${facebook_SRCS})
-target_link_libraries(facebooktest kopete ${QJSON_LIBRARIES})
+target_link_libraries(facebooktest kopete ${QJSON_LIBRARIES} ${QT_QTNETWORK_LIBRARY})
 
 if(WIN32)
   target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete ${QJSON_LIBRARIES} ${QT_QTNETWORK_LIBRARY})
