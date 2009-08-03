@@ -71,9 +71,9 @@ kde4_add_executable(facebooktest test.cpp ${facebook_SRCS})
 target_link_libraries(facebooktest kopete ${QJSON_LIBRARIES})
 
 if(WIN32)
-  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete ${QJSON_LIBRARIES})
+  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete ${QJSON_LIBRARIES} ${QT_QTNETWORK_LIBRARY})
 else(WIN32)
-  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete kopete_videodevice ${QJSON_LIBRARIES})
+  target_link_libraries(kopete_facebook  ${KDE4_KIO_LIBS} kopete kopete_videodevice ${QJSON_LIBRARIES} ${QT_QTNETWORK_LIBRARY})
 endif(WIN32)
 
 install(TARGETS kopete_facebook  DESTINATION ${PLUGIN_INSTALL_DIR})
