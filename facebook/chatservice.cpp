@@ -865,14 +865,14 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
             {
                 // if the user id is already there with the same idle status, don't emit
                 // anything
-		    qDebug() << "Checking " << userId;
+		    qDebug() << "checking status for " << userId;
                 if ( _availableBuddies.contains(userId) && 
                      ( _availableBuddies.value(userId) == idle ) )
                     continue;
 
 		bool firstTime = !_availableBuddies.contains(userId);
 
-		qDebug() << "Status changed to " << idle;
+		qDebug() << userId << " status changed to " << idle;
                 _availableBuddies[userId] = idle;
 		/* On first appearing, a buddy should be assumed to be
 		   online.  (otherwise he's not added to the list;
