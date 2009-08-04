@@ -284,10 +284,8 @@ void  FacebookAccount::slotBuddyAvailable( const Facebook::BuddyInfo &buddy, boo
         return;
     }
     
-    if ( idle ) {
-      qDebug() << "Contacting " << buddy.buddyId();
-      contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
-    }
+    qDebug() << "Contact " << buddy.buddyId() << " available";
+    contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
 }
 
 void  FacebookAccount::slotBuddyNotAvailable( const Facebook::BuddyInfo &buddy )
