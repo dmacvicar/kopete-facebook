@@ -281,14 +281,12 @@ void  FacebookAccount::slotBuddyAvailable( const Facebook::BuddyInfo &buddy, boo
     // server -> local
     if ( !contact( buddy.buddyId() ) )
     {
-	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
+	kDebug(FBDBG) << "Buddy " << buddy.buddyId() << "(" << buddy.name() << ")"<< " is not in the contact list. Ugh!";
         return;
     }
     
-    if ( idle ) {
-      qDebug() << "Contacting " << buddy.buddyId();
-      contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
-    }
+    qDebug() << "Buddy " << buddy.buddyId() << "(" << buddy.name() << ")" << " available, " << ( idle ? "" : "not" ) << "idle";
+    contact( buddy.buddyId() )->setOnlineStatus( idle ? FacebookProtocol::protocol()->facebookAway : FacebookProtocol::protocol()->facebookOnline );
 }
 
 void  FacebookAccount::slotBuddyNotAvailable( const Facebook::BuddyInfo &buddy )
@@ -296,7 +294,7 @@ void  FacebookAccount::slotBuddyNotAvailable( const Facebook::BuddyInfo &buddy )
     // server -> local
     if ( !contact( buddy.buddyId() ) )
     {
-	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Ugh!";
+	kDebug(FBDBG) << "Buddy " << buddy.buddyId() << " is not in the contact list. Ugh!";
         return;
     }
     contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
@@ -307,7 +305,7 @@ void  FacebookAccount::slotBuddyInformation( const Facebook::BuddyInfo &buddy )
     // server -> local
     if ( !contact( buddy.buddyId() ) )
     {
-	kDebug(FBDBG) << "Contact " << buddy.buddyId() << " is not in the contact list. Adding...";
+	kDebug(FBDBG) << "Buddy " << buddy.buddyId() << "(" << buddy.name() << ")" << "is not in the contact list. Adding...";
 	Kopete::Group *g = Kopete::ContactList::self()->findGroup("Facebook");
 	addContact(buddy.buddyId(), buddy.name().isEmpty() ? buddy.buddyId() : buddy.name() , g, Kopete::Account::ChangeKABC);
         contact( buddy.buddyId() )->setOnlineStatus( FacebookProtocol::protocol()->facebookOffline );
