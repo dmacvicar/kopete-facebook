@@ -20,8 +20,8 @@ FacebookChatSession::FacebookChatSession( Kopete::Protocol *protocol, const Kope
                       this, SLOT(slotMessageSent(Kopete::Message &,
                                                   Kopete::ChatSession *)));
 
-    QObject::connect (this, SIGNAL(myselfTyping (bool)),
-                      this, SLOT (sendTypingMsg (bool)));
+    QObject::connect (this, SIGNAL(myselfTyping(bool)),
+                      this, SLOT (slotSendTyping(bool)));
 
 }
 
