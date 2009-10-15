@@ -622,12 +622,12 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     
     QJson::Parser parser;
     
-    bool status = true;
-    QVariant result = parser.parse(json.toAscii(), &status);
+    bool ok = true;
+    QVariant result = parser.parse(json.toAscii(), &ok);
     
     qDebug() << json;
 
-    if (!status)
+    if (ok)
     {
         // default keep old seq
         int newSeq = _seq;
@@ -763,9 +763,9 @@ void ChatService::decodeGetMessagesResponse( QIODevice *input )
     }
     else
     {
-        qDebug() << "invalid reply: " << parser.errorString();
-        qDebug() << json;
-        
+        qDebug() << "invalid json reply";
+        qDebug() << "parser error message: " << parser.errorString();
+        qDebug() << json;        
     }
 }
 
