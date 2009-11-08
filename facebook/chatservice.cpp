@@ -82,7 +82,7 @@ namespace Facebook
 
 #define FACEBOOK_URL "http://www.facebook.com"
 #define FACEBOOK_LOGIN_URL "https://login.facebook.com/login.php"
-#define FACEBOOK_BUDDYLIST_URL "http://apps.facebook.com/ajax/presence/update.php"
+#define FACEBOOK_BUDDYLIST_URL "http://www.facebook.com/ajax/chat/buddy_list.php"
 #define FACEBOOK_PAGE_URL "http://www.facebook.com/presence/popout.php"
 #define FACEBOOK_VISIBILITY_URL "http://apps.facebook.com/ajax/chat/settings.php"
 #define FACEBOOK_STATUS_URL "http://www.facebook.com/updatestatus.php"
@@ -374,16 +374,19 @@ void ChatService::startRetrieveBuddyListRequest()
 
     QMap<QString, QString> params;
     QUrl url(FACEBOOK_BUDDYLIST_URL);
+    params.insert("__a", "1");
     params.insert("user", _user_id);
-    //params.insert("notifications", "1"); // Facebook doesn't use this
+    params.insert("fb_dtsg", "TOglY"); // No idea what this is
     params.insert("popped_out", "false");
     params.insert("force_render", "true");
     params.insert("buddy_list", "1");
+    params.insert("post_form_id", _form_id);
+    params.insert("post_form_id_source", "AsyncRequest");
 
     QString data = encodePostParams(params);
-    qDebug() << data;
 
     QNetworkReply *reply = _network->post(QNetworkRequest(url), data.toAscii());
+    qDebug() << "Buddy request: " << reply->url() << data;
     reply->setParent(this);
 
     QObject::connect(reply, SIGNAL(finished()), this, SLOT(slotRetrieveBuddyListRequestFinished()));
@@ -860,9 +863,13 @@ void ChatService::decodeBuddyListResponse( QIODevice *responseInput )
     // the format we will have hard time figuring out
     responseInput->read(QString("for (;;);").count());
 
+    QByteArray responseText = responseInput->readAll();
+    qDebug() << "Buddy List JSON: " << responseText;
+
     QJson::Parser parser;
     bool ok = true;
-    QVariant result = QJson::Parser().parse(responseInput, &ok);
+    //QVariant result = QJson::Parser().parse(responseInput, &ok);
+    QVariant result = QJson::Parser().parse(responseText, &ok);
 
     if (ok)
     {
