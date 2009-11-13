@@ -157,6 +157,7 @@ void FacebookAccount::slotLoginToServiceFinished()
     QObject::connect(m_service, SIGNAL(buddyThumbAvailable( const QString &, const QImage & )), this, SLOT(slotBuddyThumbAvailable( const QString &, const QImage & )));
     QObject::connect(m_service, SIGNAL(typingEventAvailable(const QString &, const QString &)), this, SLOT(slotTypingEventAvailable(const QString &, const QString &)));
     QObject::connect(m_service, SIGNAL(error( int, const QString &)), this, SLOT(slotError(int, const QString &)));
+    QObject::connect(m_service, SIGNAL(logoutFromServiceFinished()), this, SLOT(slotLogoutFromServiceFinished()));
 }
     
 void FacebookAccount::slotLoginToServiceError()
