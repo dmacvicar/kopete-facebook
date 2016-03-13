@@ -1,5 +1,5 @@
-[![experimental](http://badges.github.io/stability-badges/dist/experimental.svg)](http://github.com/badges/stability-badges)
-[![deprecated](http://badges.github.io/stability-badges/dist/deprecated.svg)](http://github.com/badges/stability-badges) 
+![experimental](https://img.shields.io/badge/stability%3F-experimental-orange.svg)
+![maintained](https://img.shields.io/maintenance/yes/2009.svg)
 
 *This repository is kept as an archive only*
 
